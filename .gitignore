@@ -1,0 +1,26 @@
+# Node + Supabase
+node_modules/
+package-lock.json
+dist/
+.env
+.env.local
+.env.production
+
+# Supabase credentials
+supabase/.temp/
+supabase/.branches/
+supabase/.config/
+
+# OS files
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Editor
+.vscode/
+.idea/
