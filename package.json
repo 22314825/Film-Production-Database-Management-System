@@ -6,7 +6,8 @@
   "scripts": {
     "connection": "node src/test/testConnection.js",
     "migrate": "node migrations/migrate.js",
-    "reset": "node migrations/reset.js"
+    "reset": "node migrations/reset.js",
+    "test": "node src/test/runAllTests.js"
   },
 
   "keywords": [],
