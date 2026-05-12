@@ -3,11 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { addMovie, removeMovie, getAllMovies, getMovieFullRoster, getMovieTotalSpend } from './controllers/movieController.js';
-import { addActor, removeActor, getAllActors } from './controllers/actorController.js';
-import { addDirector, removeDirector, getAllDirectors } from './controllers/directorController.js';
-import { addProducer, removeProducer, getAllProducers } from './controllers/producerController.js';
+import { addActor, removeActor, getAllActors, getMoviesByActorId } from './controllers/actorController.js';
+import { addDirector, removeDirector, getAllDirectors, getMoviesByDirectorId } from './controllers/directorController.js';
+import { addProducer, removeProducer, getAllProducers, getMoviesByProducerId } from './controllers/producerController.js';
 import { addCrewMember, removeCrewMember, getAllCrewMembers } from './controllers/crewMemberController.js';
-import { getMovieFinancialOverview, getTopPaidActors, getProfitableMovies, getGenrePerformance } from './controllers/queryController.js';
+import { getMovieFinancialOverview, getTopPaidActors, getProfitableMovies, getGenrePerformance, getDirectorRoi } from './controllers/queryController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +43,10 @@ app.whenReady().then(() => {
     ipcMain.handle('get-all-directors', () => safeCall(getAllDirectors));
     ipcMain.handle('get-all-producers', () => safeCall(getAllProducers));
     ipcMain.handle('get-all-crew', () => safeCall(getAllCrewMembers));
+    ipcMain.handle('get-movies-by-actor-id', (_, id) => safeCall(getMoviesByActorId, id));
+    ipcMain.handle('get-movies-by-director-id', (_, id) => safeCall(getMoviesByDirectorId, id));
+    ipcMain.handle('get-movies-by-producer-id', (_, id) => safeCall(getMoviesByProducerId, id));
+    ipcMain.handle('get-director-roi', (_, id) => safeCall(getDirectorRoi, id));
 
     // Finance & Queries
     ipcMain.handle('get-financial-overview', () => safeCall(getMovieFinancialOverview));

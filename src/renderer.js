@@ -212,6 +212,43 @@ function buildCardGrid(data, title, entityType) {
     return html;
 }
 
+function buildPersonCardGrid(data, title, entityType, detailFn) {
+    if (!data || data.length === 0) {
+        return `<div style="margin-bottom: 30px;"><h3 style="color: var(--accent); margin-bottom: 10px; font-weight:600;">> ${title}</h3><p style="color:var(--text-secondary);">No data found.</p>
+        <div class="add-btn-container" style="background:transparent; border:none; text-align:left; padding:0; margin-top:10px;"><button class="btn btn-glow" onclick="openAddModal('${entityType}')">+ ADD NEW ${entityType.toUpperCase()}</button></div></div>`;
+    }
+
+    let html = `<div style="margin-bottom: 30px;">
+        <h3 style="color: var(--accent); margin-bottom: 20px; font-weight: 600;">> ${title}</h3>
+        <div class="card-grid">`;
+
+    data.forEach(item => {
+        const escapedName = item.name.replace(/'/g, "\\'");
+        const genderRow = item.gender
+            ? `<p style="margin-top:8px;"><strong>Gender:</strong> <span style="color:#fff;">${item.gender}</span></p>`
+            : '';
+        html += `
+        <div class="card" onclick="${detailFn}(${item.id}, '${escapedName}')">
+            <div class="card-badge">${item.birth_year || 'N/A'}</div>
+            <div class="card-title">${item.name}</div>
+            <div class="card-body">
+                ${genderRow}
+            </div>
+            <div class="card-actions">
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteRecord('${entityType}', ${item.id})">DELETE</button>
+            </div>
+        </div>`;
+    });
+
+    html += `</div>
+    <div class="add-btn-container" style="background:transparent; border:none; text-align:left; padding:0; margin-top:20px;">
+        <button class="btn btn-glow" onclick="openAddModal('${entityType}')">+ ADD NEW ${entityType.toUpperCase()}</button>
+    </div>
+    </div>`;
+
+    return html;
+}
+
 window.openMovieDetail = async function(id, title) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('detail-title').innerText = `>> SYS.DETAILS [${title}]`;
@@ -264,6 +301,118 @@ document.getElementById('detail-close').addEventListener('click', () => {
     document.getElementById('detail-modal').classList.add('hidden');
 });
 
+window.openActorDetail = async function(id, name) {
+    const modal = document.getElementById('detail-modal');
+    document.getElementById('detail-title').innerText = `>> SYS.ACTOR [${name}]`;
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> FETCHING CLASSIFIED FILES...</p>';
+    modal.classList.remove('hidden');
+
+    try {
+        const movies = await window.api.getMoviesByActorId(id);
+        const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+        let html = `<h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> FILMOGRAPHY</h4>
+            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 10px; max-height:280px; overflow-y:auto;">`;
+
+        if (movies && movies.length > 0) {
+            movies.forEach(m => {
+                const roleText = m.role ? ` <em style="color:#94a3b8;">as ${m.role}</em>` : '';
+                const salaryText = m.salary ? `<span style="float:right; color:var(--accent); font-size:0.8rem;">${fmt.format(m.salary)}</span>` : '';
+                html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
+                    <strong style="color:#fff;">${m.title}</strong>
+                    <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
+                    ${roleText}${salaryText}
+                </li>`;
+            });
+        } else {
+            html += `<li style="color:var(--text-secondary);">No movie assignments found.</li>`;
+        }
+        html += `</ul>`;
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.openDirectorDetail = async function(id, name) {
+    const modal = document.getElementById('detail-modal');
+    document.getElementById('detail-title').innerText = `>> SYS.DIRECTOR [${name}]`;
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> FETCHING CLASSIFIED FILES...</p>';
+    modal.classList.remove('hidden');
+
+    try {
+        const [movies, roi] = await Promise.all([
+            window.api.getMoviesByDirectorId(id),
+            window.api.getDirectorRoi(id)
+        ]);
+
+        let html = `<h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> DIRECTED FILMS</h4>
+            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 16px; max-height:200px; overflow-y:auto;">`;
+
+        if (movies && movies.length > 0) {
+            movies.forEach(m => {
+                html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
+                    <strong style="color:#fff;">${m.title}</strong>
+                    <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
+                    ${m.genre ? `<span style="margin-left:8px; color:#64748b; font-size:0.8rem;">[${m.genre}]</span>` : ''}
+                </li>`;
+            });
+        } else {
+            html += `<li style="color:var(--text-secondary);">No directed films found.</li>`;
+        }
+        html += `</ul>`;
+
+        if (roi) {
+            const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+            const roiColor = (roi.roi_pct >= 0) ? 'var(--accent)' : 'var(--danger)';
+            html += `<h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ROI ANALYSIS</h4>
+                <div style="color:var(--text-secondary); font-family:monospace; font-size:0.85rem; line-height:2;">
+                    ${roi.total_budget != null ? `<p><strong>Total Budget:</strong> <span style="color:#fff;">${fmt.format(roi.total_budget)}</span></p>` : ''}
+                    ${roi.total_spend != null ? `<p><strong>Total Spend:</strong> <span style="color:var(--danger);">${fmt.format(roi.total_spend)}</span></p>` : ''}
+                    ${roi.total_revenue != null ? `<p><strong>Total Revenue:</strong> <span style="color:var(--accent);">${fmt.format(roi.total_revenue)}</span></p>` : ''}
+                    ${roi.roi_pct != null ? `<p><strong>ROI:</strong> <span style="color:${roiColor}; font-size:1rem; font-weight:bold;">${roi.roi_pct}%</span></p>` : ''}
+                </div>`;
+        }
+
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.openProducerDetail = async function(id, name) {
+    const modal = document.getElementById('detail-modal');
+    document.getElementById('detail-title').innerText = `>> SYS.PRODUCER [${name}]`;
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> FETCHING CLASSIFIED FILES...</p>';
+    modal.classList.remove('hidden');
+
+    try {
+        const movies = await window.api.getMoviesByProducerId(id);
+
+        let html = `<h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> PRODUCED FILMS</h4>
+            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 10px; max-height:280px; overflow-y:auto;">`;
+
+        if (movies && movies.length > 0) {
+            movies.forEach(m => {
+                html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
+                    <strong style="color:#fff;">${m.title}</strong>
+                    <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
+                    ${m.genre ? `<span style="margin-left:8px; color:#64748b; font-size:0.8rem;">[${m.genre}]</span>` : ''}
+                </li>`;
+            });
+        } else {
+            html += `<li style="color:var(--text-secondary);">No produced films found.</li>`;
+        }
+        html += `</ul>`;
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
 async function loadView(view) {
     const title = document.getElementById('view-title');
     const dynamicView = document.getElementById('dynamic-view');
@@ -279,41 +428,22 @@ async function loadView(view) {
         else if (view === 'actors') {
             title.innerText = 'ACTORS_DIRECTORY';
             const data = await window.api.getAllActors();
-            dynamicView.innerHTML = buildGenericTable(data, 'REGISTERED_ACTORS', 'actors');
+            dynamicView.innerHTML = buildPersonCardGrid(data, 'ALL_ACTORS', 'actors', 'openActorDetail');
         }
         else if (view === 'directors') {
             title.innerText = 'DIRECTORS_DIRECTORY';
             const data = await window.api.getAllDirectors();
-            dynamicView.innerHTML = buildGenericTable(data, 'REGISTERED_DIRECTORS', 'directors');
+            dynamicView.innerHTML = buildPersonCardGrid(data, 'ALL_DIRECTORS', 'directors', 'openDirectorDetail');
         }
         else if (view === 'producers') {
             title.innerText = 'PRODUCERS_DIRECTORY';
             const data = await window.api.getAllProducers();
-            dynamicView.innerHTML = buildGenericTable(data, 'REGISTERED_PRODUCERS', 'producers');
+            dynamicView.innerHTML = buildPersonCardGrid(data, 'ALL_PRODUCERS', 'producers', 'openProducerDetail');
         }
         else if (view === 'crew') {
             title.innerText = 'CREW_DIRECTORY';
             const data = await window.api.getAllCrew();
             dynamicView.innerHTML = buildGenericTable(data, 'REGISTERED_CREW', 'crew');
-        }
-        else if (view === 'finance') {
-            title.innerText = 'FINANCIAL_OVERVIEW';
-            const data = await window.api.getFinancialOverview();
-            dynamicView.innerHTML = buildGenericTable(data, 'MOVIE_FINANCIAL_PERFORMANCE');
-        }
-        else if (view === 'queries') {
-            title.innerText = 'SYSTEM_ANALYTICS';
-            const [topActors, genrePerf, profitableMovies] = await Promise.all([
-                window.api.getTopPaidActors(),
-                window.api.getGenrePerformance(),
-                window.api.getProfitableMovies()
-            ]);
-            
-            dynamicView.innerHTML = `
-                ${buildGenericTable(topActors, 'TOP_PAID_ACTORS')}
-                ${buildGenericTable(genrePerf, 'GENRE_PERFORMANCE')}
-                ${buildGenericTable(profitableMovies, 'MOST_PROFITABLE_MOVIES')}
-            `;
         }
     } catch (err) {
         dynamicView.innerHTML = `<div style="background: rgba(255, 0, 85, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 20px; font-family: monospace;">

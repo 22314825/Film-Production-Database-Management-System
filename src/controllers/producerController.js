@@ -25,3 +25,13 @@ export async function addMovieProducer(movieId, producerId) {
 export async function removeMovieProducer(movieId, producerId) {
     await sql`SELECT remove_movie_producer(${movieId}, ${producerId})`;
 }
+
+export async function getMoviesByProducerId(producerId) {
+    return sql`
+        SELECT m.id, m.title, m.release_year, m.genre
+        FROM Movie m
+        JOIN Movie_Producer mp ON m.id = mp.movie_id
+        WHERE mp.producer_id = ${producerId}
+        ORDER BY m.release_year DESC NULLS LAST, m.title
+    `;
+}

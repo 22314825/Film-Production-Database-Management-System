@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('api', {
     getAllDirectors: () => ipcRenderer.invoke('get-all-directors'),
     getAllProducers: () => ipcRenderer.invoke('get-all-producers'),
     getAllCrew: () => ipcRenderer.invoke('get-all-crew'),
+    getMoviesByActorId: (id) => ipcRenderer.invoke('get-movies-by-actor-id', id),
+    getMoviesByDirectorId: (id) => ipcRenderer.invoke('get-movies-by-director-id', id),
+    getMoviesByProducerId: (id) => ipcRenderer.invoke('get-movies-by-producer-id', id),
+    getDirectorRoi: (id) => ipcRenderer.invoke('get-director-roi', id),
 
     // Finance & Queries
     getFinancialOverview: () => ipcRenderer.invoke('get-financial-overview'),
