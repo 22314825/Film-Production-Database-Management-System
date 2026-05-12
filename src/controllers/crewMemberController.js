@@ -29,3 +29,13 @@ export async function removeMovieCrewMember(movieId, crewMemberId) {
 export async function getCrewRoster(movieId) {
     return sql`SELECT * FROM v_crew_roster WHERE movie_id = ${movieId}`;
 }
+
+export async function getMoviesByCrewMemberId(crewMemberId) {
+    return sql`
+        SELECT m.id, m.title, m.release_year, m.genre, mc.job_title, mc.salary
+        FROM Movie m
+        JOIN Movie_CrewMember mc ON m.id = mc.movie_id
+        WHERE mc.crew_member_id = ${crewMemberId}
+        ORDER BY m.release_year DESC NULLS LAST, m.title
+    `;
+}

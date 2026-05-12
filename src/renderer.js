@@ -188,7 +188,11 @@ function buildCardGrid(data, title, entityType) {
         <h3 style="color: var(--accent); margin-bottom: 20px; font-weight: 600;">> ${title}</h3>
         <div class="card-grid">`;
         
+    const f = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+
     data.forEach(item => {
+        let statsHtml = '';
+
         html += `
         <div class="card" onclick="openMovieDetail(${item.id}, '${item.title.replace(/'/g, "\\'")}')">
             <div class="card-badge">${item.release_year || 'N/A'}</div>
@@ -196,6 +200,7 @@ function buildCardGrid(data, title, entityType) {
             <div class="card-body">
                 <p><strong>Genre:</strong> <span style="color:#fff;">${item.genre || 'N/A'}</span></p>
                 <p style="margin-top:8px;"><strong>Topic:</strong> <span style="color:#fff;">${item.topic || 'N/A'}</span></p>
+                ${statsHtml}
             </div>
             <div class="card-actions">
                 <button class="btn-delete" onclick="event.stopPropagation(); deleteRecord('${entityType}', ${item.id})">DELETE</button>
@@ -289,9 +294,13 @@ window.openMovieDetail = async function(id, title) {
         } else {
             html += `<p>No financial records available.</p>`;
         }
+
         html += `</div>`;
 
+        html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showEditFinanceForm(${id}, '${title.replace(/'/g, "\\'")}')">EDIT FINANCES</button>`;
+
         body.innerHTML = html;
+
     } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
     }
@@ -328,8 +337,13 @@ window.openActorDetail = async function(id, name) {
         } else {
             html += `<li style="color:var(--text-secondary);">No movie assignments found.</li>`;
         }
+
         html += `</ul>`;
+        
+        html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieForm('actor', ${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN MOVIE</button>`;
+        
         body.innerHTML = html;
+
     } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
     }
@@ -406,10 +420,235 @@ window.openProducerDetail = async function(id, name) {
         } else {
             html += `<li style="color:var(--text-secondary);">No produced films found.</li>`;
         }
+
         html += `</ul>`;
+        body.innerHTML = html;
+
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+
+window.openCrewDetail = async function(id, name) {
+    const modal = document.getElementById('detail-modal');
+    document.getElementById('detail-title').innerText = `>> SYS.CREW [${name}]`;
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> FETCHING CLASSIFIED FILES...</p>';
+    modal.classList.remove('hidden');
+
+    try {
+        const movies = await window.api.getMoviesByCrewMemberId(id);
+        const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+        let html = `<h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> FILMOGRAPHY</h4>
+            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 10px; max-height:280px; overflow-y:auto;">`;
+
+        if (movies && movies.length > 0) {
+            movies.forEach(m => {
+                const roleText = m.job_title ? ` <em style="color:#94a3b8;">as ${m.job_title}</em>` : '';
+                const salaryText = m.salary ? `<span style="float:right; color:var(--accent); font-size:0.8rem;">${fmt.format(m.salary)}</span>` : '';
+                html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
+                    <strong style="color:#fff;">${m.title}</strong>
+                    <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
+                    ${roleText}${salaryText}
+                </li>`;
+            });
+        } else {
+            html += `<li style="color:var(--text-secondary);">No movie assignments found.</li>`;
+        }
+        html += `</ul>`;
+        
+        html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieForm('crew', ${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN MOVIE</button>`;
+        
         body.innerHTML = html;
     } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.showEditFinanceForm = async function(movieId, movieTitle) {
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> PREPARING FORM...</p>';
+    
+    try {
+        const producers = await window.api.getAllProducers();
+        const finance = await window.api.getMovieTotalSpend(movieId);
+        
+        // Try to fetch existing movie finance data. If we can't, we just show empty inputs.
+        // Actually, we can get current financial values from 'finance' if they match, but getMovieTotalSpend only returns total_spend.
+        // It's okay, we'll just show empty for now, or you could add a getMovieFinance route.
+        // Let's just keep them empty initially as a true form.
+        
+        let producerOpts = `<option value="">Select Producer...</option>`;
+        producers.forEach(p => {
+            producerOpts += `<option value="${p.id}">${p.name}</option>`;
+        });
+        producerOpts += `<option value="new">+ CREATE NEW PRODUCER</option>`;
+        
+        const html = `
+            <div style="margin-bottom:20px;">
+                <h4 style="color:var(--accent); margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> EDIT FINANCES</h4>
+                
+                <div class="form-group">
+                    <label>PRODUCER (FUNDS THE MOVIE)</label>
+                    <select id="fin-producer" onchange="if(this.value==='new') document.getElementById('fin-new-prod-container').style.display='block'; else document.getElementById('fin-new-prod-container').style.display='none';">
+                        ${producerOpts}
+                    </select>
+                </div>
+                
+                <div class="form-group" id="fin-new-prod-container" style="display:none; background: rgba(0,255,204,0.05); padding:10px; border-left:3px solid var(--accent);">
+                    <label>NEW PRODUCER NAME</label>
+                    <input type="text" id="fin-new-prod-name" placeholder="Enter new producer name...">
+                </div>
+                
+                <div class="form-group">
+                    <label>BUDGET ($)</label>
+                    <input type="number" id="fin-budget" placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>PRODUCTION COST ($)</label>
+                    <input type="number" id="fin-prod-cost" placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>MARKETING COST ($)</label>
+                    <input type="number" id="fin-mkt-cost" placeholder="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>BOX OFFICE REVENUE ($)</label>
+                    <input type="number" id="fin-box-office" placeholder="0">
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                    <button class="btn btn-delete" onclick="openMovieDetail(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">CANCEL</button>
+                    <button class="btn btn-glow" id="fin-submit-btn" onclick="submitEditFinance(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">EXECUTE_UPDATE()</button>
+                </div>
+            </div>
+        `;
+        body.innerHTML = html;
+    } catch(err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.submitEditFinance = async function(movieId, movieTitle) {
+    const prodId = document.getElementById('fin-producer').value;
+    if (!prodId) {
+        alert("Validation Error: Producer must be selected.");
+        return;
+    }
+    
+    const prodName = document.getElementById('fin-new-prod-name').value;
+    if (prodId === 'new' && (!prodName || !prodName.trim())) {
+        alert("Validation Error: New Producer Name is required.");
+        return;
+    }
+    
+    const data = {
+        movieId: movieId,
+        producerId: prodId,
+        producerName: prodName,
+        budget: document.getElementById('fin-budget').value || null,
+        productionCost: document.getElementById('fin-prod-cost').value || null,
+        marketingCost: document.getElementById('fin-mkt-cost').value || null,
+        boxOfficeRevenue: document.getElementById('fin-box-office').value || null
+    };
+    
+    const btn = document.getElementById('fin-submit-btn');
+    btn.innerText = 'UPDATING...';
+    btn.disabled = true;
+    
+    const res = await window.api.updateMovieFinance(data);
+    if (res.success) {
+        loadView(currentView); // Refresh background view
+        openMovieDetail(movieId, movieTitle); // Go back to details
+    } else {
+        btn.innerText = 'EXECUTE_UPDATE()';
+        btn.disabled = false;
+        alert(`Update failed: ${res.error}`);
+    }
+};
+
+window.showAssignMovieForm = async function(type, personId, personName) {
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> PREPARING FORM...</p>';
+    
+    try {
+        const movies = await window.api.getAllMovies();
+        
+        let movieOpts = `<option value="">Select Movie...</option>`;
+        movies.forEach(m => {
+            movieOpts += `<option value="${m.id}">${m.title} (${m.release_year})</option>`;
+        });
+        
+        const html = `
+            <div style="margin-bottom:20px;">
+                <h4 style="color:var(--accent); margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ASSIGN TO MOVIE</h4>
+                
+                <div class="form-group">
+                    <label>MOVIE</label>
+                    <select id="assign-movie-id">
+                        ${movieOpts}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>ROLE / JOB TITLE</label>
+                    <input type="text" id="assign-role" placeholder="e.g. Lead Actor, Cameraman...">
+                </div>
+                
+                <div class="form-group">
+                    <label>SALARY ($) [REQUIRED]</label>
+                    <input type="number" id="assign-salary" placeholder="0">
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                    <button class="btn btn-delete" onclick="${type === 'actor' ? `openActorDetail(${personId}, '${personName.replace(/'/g, "\\'")}')` : `openCrewDetail(${personId}, '${personName.replace(/'/g, "\\'")}')`}">CANCEL</button>
+                    <button class="btn btn-glow" id="assign-submit-btn" onclick="submitAssignMovie('${type}', ${personId}, '${personName.replace(/'/g, "\\'")}')">EXECUTE_ASSIGN()</button>
+                </div>
+            </div>
+        `;
+        body.innerHTML = html;
+    } catch(err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.submitAssignMovie = async function(type, personId, personName) {
+    const movieId = document.getElementById('assign-movie-id').value;
+    const role = document.getElementById('assign-role').value;
+    const salary = document.getElementById('assign-salary').value;
+    
+    if (!movieId) {
+        alert("Validation Error: Movie must be selected.");
+        return;
+    }
+    if (!salary) {
+        alert("Validation Error: Salary is required.");
+        return;
+    }
+    
+    const btn = document.getElementById('assign-submit-btn');
+    btn.innerText = 'ASSIGNING...';
+    btn.disabled = true;
+    
+    let res;
+    if (type === 'actor') {
+        res = await window.api.assignMovieActor({ movieId, actorId: personId, role: role || null, salary });
+    } else {
+        res = await window.api.assignMovieCrew({ movieId, crewId: personId, jobTitle: role || null, salary });
+    }
+    
+    if (res.success) {
+        if (type === 'actor') openActorDetail(personId, personName);
+        else openCrewDetail(personId, personName);
+    } else {
+        btn.innerText = 'EXECUTE_ASSIGN()';
+        btn.disabled = false;
+        alert(`Assignment failed: ${res.error}`);
     }
 };
 
@@ -422,8 +661,17 @@ async function loadView(view) {
     try {
         if (view === 'movies') {
             title.innerText = 'MOVIES_DIRECTORY';
-            const data = await window.api.getAllMovies();
-            dynamicView.innerHTML = buildCardGrid(data, 'ALL_MOVIES', 'movies');
+            const [movies, financials] = await Promise.all([
+                window.api.getAllMovies(),
+                window.api.getFinancialOverview()
+            ]);
+            
+            const merged = movies.map(m => {
+                const fin = financials.find(f => f.movie_id === m.id) || {};
+                return { ...m, ...fin };
+            });
+            
+            dynamicView.innerHTML = buildCardGrid(merged, 'ALL_MOVIES', 'movies');
         } 
         else if (view === 'actors') {
             title.innerText = 'ACTORS_DIRECTORY';
@@ -443,7 +691,7 @@ async function loadView(view) {
         else if (view === 'crew') {
             title.innerText = 'CREW_DIRECTORY';
             const data = await window.api.getAllCrew();
-            dynamicView.innerHTML = buildGenericTable(data, 'REGISTERED_CREW', 'crew');
+            dynamicView.innerHTML = buildPersonCardGrid(data, 'REGISTERED_CREW', 'crew', 'openCrewDetail');
         }
     } catch (err) {
         dynamicView.innerHTML = `<div style="background: rgba(255, 0, 85, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 20px; font-family: monospace;">

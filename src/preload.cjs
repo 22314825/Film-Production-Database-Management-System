@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
     getMoviesByActorId: (id) => ipcRenderer.invoke('get-movies-by-actor-id', id),
     getMoviesByDirectorId: (id) => ipcRenderer.invoke('get-movies-by-director-id', id),
     getMoviesByProducerId: (id) => ipcRenderer.invoke('get-movies-by-producer-id', id),
+    getMoviesByCrewMemberId: (id) => ipcRenderer.invoke('get-movies-by-crew-member-id', id),
     getDirectorRoi: (id) => ipcRenderer.invoke('get-director-roi', id),
 
     // Finance & Queries
@@ -21,6 +22,11 @@ contextBridge.exposeInMainWorld('api', {
     getTopPaidActors: () => ipcRenderer.invoke('get-top-paid-actors'),
     getProfitableMovies: () => ipcRenderer.invoke('get-profitable-movies'),
     getGenrePerformance: () => ipcRenderer.invoke('get-genre-performance'),
+
+    // Advanced Workflows
+    updateMovieFinance: (data) => ipcRenderer.invoke('update-movie-finance', data),
+    assignMovieActor: (data) => ipcRenderer.invoke('assign-movie-actor', data),
+    assignMovieCrew: (data) => ipcRenderer.invoke('assign-movie-crew', data),
 
     // Mutations
     deleteEntity: (type, id) => ipcRenderer.invoke('delete-entity', type, id),

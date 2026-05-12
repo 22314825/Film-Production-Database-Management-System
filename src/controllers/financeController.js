@@ -15,6 +15,27 @@ export async function addMovieFinance(
     return rows[0];
 }
 
+export async function upsertMovieFinance(
+    movieId,
+    budget = null,
+    productionCost = null,
+    marketingCost = null,
+    boxOfficeRevenue = null
+) {
+    const rows = await sql`
+        INSERT INTO MovieFinance (movie_id, budget, production_cost, marketing_cost, box_office_revenue)
+        VALUES (${movieId}, ${budget}, ${productionCost}, ${marketingCost}, ${boxOfficeRevenue})
+        ON CONFLICT (movie_id) 
+        DO UPDATE SET 
+            budget = EXCLUDED.budget,
+            production_cost = EXCLUDED.production_cost,
+            marketing_cost = EXCLUDED.marketing_cost,
+            box_office_revenue = EXCLUDED.box_office_revenue
+        RETURNING *;
+    `;
+    return rows[0];
+}
+
 export async function removeMovieFinance(movieId) {
     await sql`SELECT remove_movie_finance(${movieId})`;
 }

@@ -225,6 +225,40 @@ tbody tr:last-child td {
     flex-grow: 1;
 }
 
+.card-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.stat-val {
+    font-size: 0.95rem;
+    font-family: 'Fira Code', monospace;
+    font-weight: 600;
+}
+
+.val-positive { color: var(--accent); }
+.val-negative { color: var(--danger); }
+.val-neutral { color: #fff; }
+
 .card-actions {
     margin-top: 16px;
     display: flex;
