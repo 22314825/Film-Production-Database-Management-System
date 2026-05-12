@@ -113,6 +113,14 @@ async function submitAddModal() {
         data[field.name] = val;
     });
 
+    if (currentAddType === 'movies' && (!data.title || !data.title.trim())) {
+        alert("Validation Error: Movie Title is required.");
+        return;
+    } else if (currentAddType !== 'movies' && (!data.name || !data.name.trim())) {
+        alert("Validation Error: Name is required.");
+        return;
+    }
+
     const submitBtn = document.getElementById('modal-submit');
     submitBtn.innerText = 'EXECUTING...';
     submitBtn.disabled = true;
@@ -170,6 +178,91 @@ function buildGenericTable(data, title, entityType = null) {
     </div>`;
     return html;
 }
+function buildCardGrid(data, title, entityType) {
+    if (!data || data.length === 0) {
+        return `<div style="margin-bottom: 30px;"><h3 style="color: var(--accent); margin-bottom: 10px; font-weight:600;">> ${title}</h3><p style="color:var(--text-secondary);">No data found.</p>
+        <div class="add-btn-container" style="background:transparent; border:none; text-align:left; padding:0; margin-top:10px;"><button class="btn btn-glow" onclick="openAddModal('${entityType}')">+ ADD NEW MOVIE</button></div></div>`;
+    }
+    
+    let html = `<div style="margin-bottom: 30px;">
+        <h3 style="color: var(--accent); margin-bottom: 20px; font-weight: 600;">> ${title}</h3>
+        <div class="card-grid">`;
+        
+    data.forEach(item => {
+        html += `
+        <div class="card" onclick="openMovieDetail(${item.id}, '${item.title.replace(/'/g, "\\'")}')">
+            <div class="card-badge">${item.release_year || 'N/A'}</div>
+            <div class="card-title">${item.title}</div>
+            <div class="card-body">
+                <p><strong>Genre:</strong> <span style="color:#fff;">${item.genre || 'N/A'}</span></p>
+                <p style="margin-top:8px;"><strong>Topic:</strong> <span style="color:#fff;">${item.topic || 'N/A'}</span></p>
+            </div>
+            <div class="card-actions">
+                <button class="btn-delete" onclick="event.stopPropagation(); deleteRecord('${entityType}', ${item.id})">DELETE</button>
+            </div>
+        </div>`;
+    });
+    
+    html += `</div>
+    <div class="add-btn-container" style="background:transparent; border:none; text-align:left; padding:0; margin-top:20px;">
+        <button class="btn btn-glow" onclick="openAddModal('${entityType}')">+ ADD NEW MOVIE</button>
+    </div>
+    </div>`;
+    
+    return html;
+}
+
+window.openMovieDetail = async function(id, title) {
+    const modal = document.getElementById('detail-modal');
+    document.getElementById('detail-title').innerText = `>> SYS.DETAILS [${title}]`;
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> FETCHING CLASSIFIED FILES...</p>';
+    modal.classList.remove('hidden');
+
+    try {
+        const [roster, finance] = await Promise.all([
+            window.api.getMovieFullRoster(id),
+            window.api.getMovieTotalSpend(id)
+        ]);
+
+        let html = `
+            <h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ROSTER / CAST</h4>
+            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 20px; max-height:150px; overflow-y:auto;">
+        `;
+        if (roster && roster.length > 0) {
+            roster.forEach(r => {
+                const roleText = r.role_detail ? r.role_detail : r.person_type;
+                html += `<li style="padding:4px 0;">- <strong style="color:#fff;">${r.person_name}</strong> <span style="font-size:0.8rem;">(${roleText})</span></li>`;
+            });
+        } else {
+            html += `<li>No cast/crew assigned yet.</li>`;
+        }
+        html += `</ul>`;
+
+        html += `
+            <h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> FINANCIALS</h4>
+            <div style="color:var(--text-secondary);">
+        `;
+        if (finance) {
+            const f = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+            html += `
+                <p style="margin-bottom:8px;"><strong>Total Spend:</strong> <span style="color:var(--danger); font-size:1.1rem; font-weight:bold;">${f.format(finance.total_spend || 0)}</span></p>
+                <p style="font-size:0.8rem; margin-top:5px;">(Includes all production, marketing, and negotiated cast/director payouts)</p>
+            `;
+        } else {
+            html += `<p>No financial records available.</p>`;
+        }
+        html += `</div>`;
+
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+document.getElementById('detail-close').addEventListener('click', () => {
+    document.getElementById('detail-modal').classList.add('hidden');
+});
 
 async function loadView(view) {
     const title = document.getElementById('view-title');
@@ -181,7 +274,7 @@ async function loadView(view) {
         if (view === 'movies') {
             title.innerText = 'MOVIES_DIRECTORY';
             const data = await window.api.getAllMovies();
-            dynamicView.innerHTML = buildGenericTable(data, 'ALL_MOVIES', 'movies');
+            dynamicView.innerHTML = buildCardGrid(data, 'ALL_MOVIES', 'movies');
         } 
         else if (view === 'actors') {
             title.innerText = 'ACTORS_DIRECTORY';

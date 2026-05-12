@@ -34,8 +34,14 @@ h1, h2, h3, th {
 .blink {
     animation: blink 1s step-end infinite;
 }
-@keyframes blink { 50% { opacity: 0; } }
 
+@keyframes blink { 
+    50% { opacity: 0; } 
+}
+
+/* ==============================
+   LAYOUT & SIDEBAR
+============================== */
 .app-container {
     display: flex;
     height: 100vh;
@@ -111,6 +117,9 @@ h1, h2, h3, th {
     padding-bottom: 10px;
 }
 
+/* ==============================
+   DATA TABLES
+============================== */
 .table-container {
     background-color: var(--bg-panel);
     border-radius: 8px;
@@ -160,7 +169,73 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Buttons */
+/* ==============================
+   CARD GRID (MOVIES GALLERY)
+============================== */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    padding: 10px 0;
+    animation: fadeIn 0.4s ease;
+}
+
+.card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.card:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent);
+    box-shadow: 0 10px 30px rgba(0, 255, 204, 0.15);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+}
+
+.card-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 255, 204, 0.1);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.card-body {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.card-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+}
+
+/* ==============================
+   BUTTONS
+============================== */
 .btn {
     padding: 10px 20px;
     border-radius: 4px;
@@ -210,7 +285,9 @@ tbody tr:last-child td {
     border-top: 1px dashed var(--border-color);
 }
 
-/* Modal */
+/* ==============================
+   MODALS (POP-UPS)
+============================== */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
