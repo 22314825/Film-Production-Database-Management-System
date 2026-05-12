@@ -29,3 +29,13 @@ export async function removeMovieActor(movieId, actorId) {
 export async function getMoviesByActor(actorName) {
     return sql`SELECT * FROM get_movies_by_actor(${actorName})`;
 }
+
+export async function getMoviesByActorId(actorId) {
+    return sql`
+        SELECT m.id, m.title, m.release_year, m.genre, ma.role, ma.salary
+        FROM Movie m
+        JOIN Movie_Actor ma ON m.id = ma.movie_id
+        WHERE ma.actor_id = ${actorId}
+        ORDER BY m.release_year DESC NULLS LAST, m.title
+    `;
+}

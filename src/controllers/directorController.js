@@ -34,3 +34,13 @@ export async function getDirectorRoi(directorId) {
 export async function getDirectorFilmography() {
     return sql`SELECT * FROM v_director_filmography ORDER BY movie_count DESC`;
 }
+
+export async function getMoviesByDirectorId(directorId) {
+    return sql`
+        SELECT m.id, m.title, m.release_year, m.genre
+        FROM Movie m
+        JOIN Movie_Director md ON m.id = md.movie_id
+        WHERE md.director_id = ${directorId}
+        ORDER BY m.release_year DESC NULLS LAST, m.title
+    `;
+}
