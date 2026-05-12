@@ -1,9 +1,10 @@
 {
   "name": "cmpe344_4students",
   "version": "1.0.0",
-  "main": "app.js",
+  "main": "src/app.js",
   
   "scripts": {
+    "start": "electron .",
     "connection": "node src/test/testConnection.js",
     "migrate": "node migrations/migrate.js",
     "reset": "node migrations/reset.js",

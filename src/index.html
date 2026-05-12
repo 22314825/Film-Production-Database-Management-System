@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineDB | Cyberpunk Edition</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>CINE_DB<span class="blink">_</span></h2>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-view="movies">> Movies</li>
+                <li data-view="actors">> Actors</li>
+                <li data-view="directors">> Directors</li>
+                <li data-view="producers">> Producers</li>
+                <li data-view="crew">> Crew</li>
+                <li class="separator"></li>
+                <li data-view="finance">> Finance</li>
+                <li data-view="queries">> Analytics</li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="content-area">
+            <header class="content-header">
+                <h1 id="view-title">Initializing...</h1>
+            </header>
+
+            <div class="table-container" style="display: none;">
+                <table id="data-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+            <div id="dynamic-view"></div>
+        </main>
+    </div>
+
+    <!-- Add Record Modal -->
+    <div id="add-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">>> SYS.INSERT_RECORD</h3>
+                <span class="close-btn" id="modal-close">&times;</span>
+            </div>
+            <div class="modal-body" id="modal-form-container">
+                <!-- Inputs injected by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-glow" id="modal-submit">EXECUTE_INSERT()</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
