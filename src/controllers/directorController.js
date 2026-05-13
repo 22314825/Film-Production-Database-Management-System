@@ -44,3 +44,7 @@ export async function getMoviesByDirectorId(directorId) {
         ORDER BY m.release_year DESC NULLS LAST, m.title
     `;
 }
+
+export async function updateDirector(id, name, birthYear = null) {
+    await sql`SELECT update_director(${id}, ${name}, ${birthYear})`;
+}

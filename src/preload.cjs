@@ -23,11 +23,36 @@ contextBridge.exposeInMainWorld('api', {
     getProfitableMovies: () => ipcRenderer.invoke('get-profitable-movies'),
     getGenrePerformance: () => ipcRenderer.invoke('get-genre-performance'),
 
+    // Get by ID
+    getActorById: (id) => ipcRenderer.invoke('get-actor-by-id', id),
+    getDirectorById: (id) => ipcRenderer.invoke('get-director-by-id', id),
+    getProducerById: (id) => ipcRenderer.invoke('get-producer-by-id', id),
+    getCrewMemberById: (id) => ipcRenderer.invoke('get-crew-member-by-id', id),
+    getMovieFinance: (id) => ipcRenderer.invoke('get-movie-finance', id),
+    getMovieProducers: (id) => ipcRenderer.invoke('get-movie-producers', id),
+
     // Advanced Workflows
     updateMovieFinance: (data) => ipcRenderer.invoke('update-movie-finance', data),
     assignMovieActor: (data) => ipcRenderer.invoke('assign-movie-actor', data),
     assignMovieCrew: (data) => ipcRenderer.invoke('assign-movie-crew', data),
+    assignMovieDirector: (data) => ipcRenderer.invoke('assign-movie-director', data),
     publishMovie: (data) => ipcRenderer.invoke('publish-movie', data),
+
+    // Unassign
+    unassignMovieActor: (data) => ipcRenderer.invoke('unassign-movie-actor', data),
+    unassignMovieDirector: (data) => ipcRenderer.invoke('unassign-movie-director', data),
+    unassignMovieCrew: (data) => ipcRenderer.invoke('unassign-movie-crew', data),
+    unassignMovieProducer: (data) => ipcRenderer.invoke('unassign-movie-producer', data),
+
+    // Re-assign
+    updateMovieActor: (data) => ipcRenderer.invoke('update-movie-actor', data),
+    updateMovieCrew: (data) => ipcRenderer.invoke('update-movie-crew', data),
+
+    // Update person info
+    updateActor: (data) => ipcRenderer.invoke('update-actor', data),
+    updateDirector: (data) => ipcRenderer.invoke('update-director', data),
+    updateProducer: (data) => ipcRenderer.invoke('update-producer', data),
+    updateCrewMember: (data) => ipcRenderer.invoke('update-crew-member', data),
 
     // Mutations
     deleteEntity: (type, id) => ipcRenderer.invoke('delete-entity', type, id),

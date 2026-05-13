@@ -39,3 +39,11 @@ export async function getMoviesByCrewMemberId(crewMemberId) {
         ORDER BY m.release_year DESC NULLS LAST, m.title
     `;
 }
+
+export async function updateCrewMember(id, name, birthYear = null, gender = null) {
+    await sql`SELECT update_crew_member(${id}, ${name}, ${birthYear}, ${gender})`;
+}
+
+export async function updateMovieCrewMember(movieId, crewMemberId, jobTitle = null, salary = null) {
+    await sql`SELECT update_movie_crew_member(${movieId}, ${crewMemberId}, ${jobTitle}, ${salary})`;
+}

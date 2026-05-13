@@ -39,3 +39,17 @@ export async function getMoviesByProducerId(producerId) {
         ORDER BY m.release_year DESC NULLS LAST, m.title
     `;
 }
+
+export async function updateProducer(id, name, birthYear = null, gender = null) {
+    await sql`SELECT update_producer(${id}, ${name}, ${birthYear}, ${gender})`;
+}
+
+export async function getMovieProducers(movieId) {
+    return sql`
+        SELECT p.id, p.name, mp.investment
+        FROM Movie_Producer mp
+        JOIN Producer p ON p.id = mp.producer_id
+        WHERE mp.movie_id = ${movieId}
+        ORDER BY p.name
+    `;
+}

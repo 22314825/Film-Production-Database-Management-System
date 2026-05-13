@@ -280,19 +280,56 @@ window.openMovieDetail = async function (id, title, status) {
     modal.classList.remove('hidden');
 
     try {
-        const [roster, finance] = await Promise.all([
+        const [roster, finance, movieFinance] = await Promise.all([
             window.api.getMovieFullRoster(id),
-            window.api.getMovieTotalSpend(id)
+            window.api.getMovieTotalSpend(id),
+            window.api.getMovieFinance(id)
         ]);
+
+        const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+        const safeTitle = title.replace(/'/g, "\\'");
 
         let html = `
             <h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ROSTER / CAST</h4>
-            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 20px; max-height:150px; overflow-y:auto;">
+            <ul style="list-style: none; color:var(--text-secondary); margin-bottom: 20px; max-height:180px; overflow-y:auto;">
         `;
+
         if (roster && roster.length > 0) {
             roster.forEach(r => {
                 const roleText = r.role_detail ? r.role_detail : r.person_type;
-                html += `<li style="padding:4px 0;">- <strong style="color:#fff;">${r.person_name}</strong> <span style="font-size:0.8rem;">(${roleText})</span></li>`;
+                const safeName = r.person_name.replace(/'/g, "\\'");
+                const safeRole = (r.role_detail || '').replace(/'/g, "\\'");
+
+                let salaryBadge = '';
+                if ((r.person_type === 'Actor' || r.person_type === 'Crew') && r.salary_or_investment) {
+                    salaryBadge = `<span style="color:var(--accent); font-size:0.78rem; margin-left:6px;">${fmt.format(r.salary_or_investment)}</span>`;
+                } else if (r.person_type === 'Producer' && r.salary_or_investment) {
+                    salaryBadge = `<span style="color:#94a3b8; font-size:0.78rem; margin-left:6px;">inv: ${fmt.format(r.salary_or_investment)}</span>`;
+                }
+
+                let actionBtns = '';
+                if (r.person_type === 'Actor') {
+                    const sal = r.salary_or_investment != null ? r.salary_or_investment : 'null';
+                    actionBtns = `
+                        <button onclick="showEditRosterAssignment(${id},'${safeTitle}','${status}','Actor',${r.person_id},'${safeName}','${safeRole}',${sal})" style="background:none;border:1px solid #64748b;color:#94a3b8;padding:2px 7px;border-radius:3px;cursor:pointer;font-size:0.75rem;margin-left:6px;" title="Edit role/salary">✏</button>
+                        <button onclick="unassignFromMovie(${id},'${safeTitle}','${status}','Actor',${r.person_id},'${safeName}')" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:2px 7px;border-radius:3px;cursor:pointer;font-size:0.75rem;margin-left:4px;" title="Remove from movie">✕</button>`;
+                } else if (r.person_type === 'Crew') {
+                    const sal = r.salary_or_investment != null ? r.salary_or_investment : 'null';
+                    actionBtns = `
+                        <button onclick="showEditRosterAssignment(${id},'${safeTitle}','${status}','Crew',${r.person_id},'${safeName}','${safeRole}',${sal})" style="background:none;border:1px solid #64748b;color:#94a3b8;padding:2px 7px;border-radius:3px;cursor:pointer;font-size:0.75rem;margin-left:6px;" title="Edit role/salary">✏</button>
+                        <button onclick="unassignFromMovie(${id},'${safeTitle}','${status}','Crew',${r.person_id},'${safeName}')" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:2px 7px;border-radius:3px;cursor:pointer;font-size:0.75rem;margin-left:4px;" title="Remove from movie">✕</button>`;
+                } else if (r.person_type === 'Director') {
+                    actionBtns = `
+                        <button onclick="unassignFromMovie(${id},'${safeTitle}','${status}','Director',${r.person_id},'${safeName}')" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:2px 7px;border-radius:3px;cursor:pointer;font-size:0.75rem;margin-left:6px;" title="Remove director">✕</button>`;
+                } else if (r.person_type === 'Producer') {
+                    actionBtns = `
+                        <button onclick="unassignFromMovie(${id},'${safeTitle}','${status}','Producer',${r.person_id},'${safeName}')" style="background:none;border:1px solid var(--danger);color:var(--danger);padding:2px 7px;border-radius:3px;cursor:pointer;font-size:0.75rem;margin-left:6px;" title="Remove producer">✕</button>`;
+                }
+
+                html += `<li style="padding:6px 0; border-bottom:1px solid var(--border-color); display:flex; align-items:center;">
+                    <span style="flex:1;">— <strong style="color:#fff;">${r.person_name}</strong> <span style="font-size:0.8rem; color:#64748b;">(${roleText})</span>${salaryBadge}</span>
+                    ${actionBtns}
+                </li>`;
             });
         } else {
             html += `<li>No cast/crew assigned yet.</li>`;
@@ -301,25 +338,37 @@ window.openMovieDetail = async function (id, title, status) {
 
         html += `
             <h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> FINANCIALS</h4>
-            <div style="color:var(--text-secondary);">
+            <div style="color:var(--text-secondary); font-family:monospace; font-size:0.85rem; line-height:2;">
         `;
-        if (finance) {
-            const f = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+        if (movieFinance) {
             html += `
-                <p style="margin-bottom:8px;"><strong>Total Spend:</strong> <span style="color:var(--danger); font-size:1.1rem; font-weight:bold;">${f.format(finance.total_spend || 0)}</span></p>
-                <p style="font-size:0.8rem; margin-top:5px;">(Includes all production, marketing, and negotiated cast/director payouts)</p>
+                <p><strong>Budget (Investments):</strong> <span style="color:#fff;">${fmt.format(movieFinance.budget || 0)}</span></p>
+                <p><strong>Production Cost:</strong> <span style="color:var(--danger);">${fmt.format(movieFinance.production_cost || 0)}</span></p>
+                <p><strong>Marketing Cost:</strong> <span style="color:var(--danger);">${fmt.format(movieFinance.marketing_cost || 0)}</span></p>
             `;
-        } else {
-            html += `<p>No financial records available.</p>`;
+            if (status === 'published') {
+                html += `
+                <p><strong>Box Office Revenue:</strong> <span style="color:var(--accent);">${fmt.format(movieFinance.box_office_revenue || 0)}</span></p>
+                <p><strong>Net Profit:</strong> <span style="color:${(movieFinance.net_profit || 0) >= 0 ? 'var(--accent)' : 'var(--danger)'}; font-size:1rem; font-weight:bold;">${fmt.format(movieFinance.net_profit || 0)}</span></p>
+                `;
+            }
+        }
+
+        if (finance) {
+            html += `<p style="margin-top:6px;"><strong>Total Payroll Spend:</strong> <span style="color:var(--danger); font-weight:bold;">${fmt.format(finance.total_spend || 0)}</span></p>`;
+        }
+
+        if (!movieFinance && !finance) {
+            html += `<p>No financial records yet. Use EDIT FINANCES to add a producer and budget.</p>`;
         }
 
         html += `</div>`;
 
         if (status === 'draft') {
-            html += `<button class="btn btn-glow" style="margin-top:20px; width:100%; border-color: #ffaa00; color: #ffaa00;" onclick="showPublishMovieForm(${id}, '${title.replace(/'/g, "\\'")}')">PUBLISH PROJECT</button>`;
+            html += `<button class="btn btn-glow" style="margin-top:20px; width:100%; border-color: #ffaa00; color: #ffaa00;" onclick="showPublishMovieForm(${id}, '${safeTitle}')">PUBLISH PROJECT</button>`;
         }
-
-        html += `<button class="btn btn-glow" style="margin-top:10px; width:100%;" onclick="showEditFinanceForm(${id}, '${title.replace(/'/g, "\\'")}', '${status}')">EDIT FINANCES</button>`;
+        html += `<button class="btn btn-glow" style="margin-top:10px; width:100%;" onclick="showEditFinanceForm(${id}, '${safeTitle}', '${status}')">EDIT FINANCES</button>`;
 
         body.innerHTML = html;
 
@@ -363,6 +412,7 @@ window.openActorDetail = async function (id, name) {
         html += `</ul>`;
 
         html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieForm('actor', ${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN MOVIE</button>`;
+        html += `<button class="btn" style="margin-top:8px; width:100%; border-color:#64748b; color:#94a3b8;" onclick="showEditPersonForm('actor', ${id}, '${name.replace(/'/g, "\\'")}')">EDIT INFO</button>`;
 
         body.innerHTML = html;
 
@@ -412,6 +462,9 @@ window.openDirectorDetail = async function (id, name) {
                 </div>`;
         }
 
+        html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieFormDirector(${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN TO MOVIE</button>`;
+        html += `<button class="btn" style="margin-top:8px; width:100%; border-color:#64748b; color:#94a3b8;" onclick="showEditPersonForm('director', ${id}, '${name.replace(/'/g, "\\'")}')">EDIT INFO</button>`;
+
         body.innerHTML = html;
     } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
@@ -444,6 +497,7 @@ window.openProducerDetail = async function (id, name) {
         }
 
         html += `</ul>`;
+        html += `<button class="btn" style="margin-top:20px; width:100%; border-color:#64748b; color:#94a3b8;" onclick="showEditPersonForm('producer', ${id}, '${name.replace(/'/g, "\\'")}')">EDIT INFO</button>`;
         body.innerHTML = html;
 
     } catch (err) {
@@ -482,6 +536,7 @@ window.openCrewDetail = async function (id, name) {
         html += `</ul>`;
 
         html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieForm('crew', ${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN MOVIE</button>`;
+        html += `<button class="btn" style="margin-top:8px; width:100%; border-color:#64748b; color:#94a3b8;" onclick="showEditPersonForm('crew', ${id}, '${name.replace(/'/g, "\\'")}')">EDIT INFO</button>`;
 
         body.innerHTML = html;
     } catch (err) {
@@ -541,7 +596,11 @@ window.showEditFinanceForm = async function (movieId, movieTitle, status) {
                 
                 <div class="form-group">
                     <label>BOX OFFICE REVENUE ($)</label>
-                    <input type="number" id="fin-box-office" placeholder="0">
+                    ${status === 'draft'
+                        ? `<input type="number" id="fin-box-office" placeholder="0" disabled style="opacity:0.4; cursor:not-allowed;">
+                           <p style="color:#64748b; font-size:0.75rem; margin-top:4px;">Revenue is editable only after the movie is published.</p>`
+                        : `<input type="number" id="fin-box-office" placeholder="0">`
+                    }
                 </div>
                 
                 <div style="display:flex; justify-content:space-between; margin-top:20px;">
@@ -576,7 +635,9 @@ window.submitEditFinance = async function (movieId, movieTitle, status) {
         investment: document.getElementById('fin-investment').value || null,
         productionCost: document.getElementById('fin-prod-cost').value || null,
         marketingCost: document.getElementById('fin-mkt-cost').value || null,
-        boxOfficeRevenue: document.getElementById('fin-box-office').value || null
+        boxOfficeRevenue: status === 'published'
+            ? (document.getElementById('fin-box-office').value || null)
+            : undefined
     };
 
     const btn = document.getElementById('fin-submit-btn');
@@ -772,6 +833,243 @@ window.submitPublishMovie = async function (movieId, movieTitle) {
         btn.innerText = 'EXECUTE_PUBLISH()';
         btn.disabled = false;
         alert(`UI Error: ${error.message}`);
+    }
+};
+
+// ============================================================
+// UNASSIGN FROM MOVIE
+// ============================================================
+
+window.unassignFromMovie = async function (movieId, movieTitle, status, personType, personId, personName) {
+    if (!confirm(`Remove "${personName}" from "${movieTitle}"?`)) return;
+
+    let res;
+    const t = personType.toLowerCase();
+    if (t === 'actor')    res = await window.api.unassignMovieActor({ movieId, actorId: personId });
+    else if (t === 'director') res = await window.api.unassignMovieDirector({ movieId, directorId: personId });
+    else if (t === 'crew')     res = await window.api.unassignMovieCrew({ movieId, crewId: personId });
+    else if (t === 'producer') res = await window.api.unassignMovieProducer({ movieId, producerId: personId });
+
+    if (res && res.success) {
+        openMovieDetail(movieId, movieTitle, status);
+    } else {
+        alert(`Remove failed: ${res?.error}`);
+    }
+};
+
+// ============================================================
+// RE-ASSIGN (edit role/salary for actor or crew on a movie)
+// ============================================================
+
+window.showEditRosterAssignment = async function (movieId, movieTitle, status, personType, personId, personName, currentRole, currentSalary) {
+    const body = document.getElementById('detail-body');
+    const labelRole = personType === 'Actor' ? 'ROLE' : 'JOB TITLE';
+    const safeTitle = movieTitle.replace(/'/g, "\\'");
+    const safeName  = personName.replace(/'/g, "\\'");
+
+    body.innerHTML = `
+        <div>
+            <h4 style="color:var(--accent); margin-bottom:15px; border-bottom:1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> EDIT ASSIGNMENT: ${personName}</h4>
+
+            <div class="form-group">
+                <label>${labelRole}</label>
+                <input type="text" id="edit-roster-role" value="${currentRole || ''}" placeholder="Enter ${labelRole.toLowerCase()}...">
+            </div>
+
+            <div class="form-group">
+                <label>SALARY ($)</label>
+                <input type="number" id="edit-roster-salary" value="${currentSalary != null ? currentSalary : ''}" placeholder="0">
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                <button class="btn btn-delete" onclick="openMovieDetail(${movieId}, '${safeTitle}', '${status}')">CANCEL</button>
+                <button class="btn btn-glow" id="edit-roster-btn" onclick="submitEditRosterAssignment(${movieId}, '${safeTitle}', '${status}', '${personType}', ${personId}, '${safeName}')">EXECUTE_UPDATE()</button>
+            </div>
+        </div>
+    `;
+};
+
+window.submitEditRosterAssignment = async function (movieId, movieTitle, status, personType, personId, personName) {
+    const role   = document.getElementById('edit-roster-role').value || null;
+    const salary = document.getElementById('edit-roster-salary').value || null;
+
+    const btn = document.getElementById('edit-roster-btn');
+    btn.innerText = 'UPDATING...';
+    btn.disabled  = true;
+
+    let res;
+    if (personType === 'Actor') {
+        res = await window.api.updateMovieActor({ movieId, actorId: personId, role, salary });
+    } else {
+        res = await window.api.updateMovieCrew({ movieId, crewId: personId, jobTitle: role, salary });
+    }
+
+    if (res.success) {
+        openMovieDetail(movieId, movieTitle, status);
+    } else {
+        btn.innerText = 'EXECUTE_UPDATE()';
+        btn.disabled  = false;
+        alert(`Update failed: ${res.error}`);
+    }
+};
+
+// ============================================================
+// ASSIGN DIRECTOR TO MOVIE
+// ============================================================
+
+window.showAssignMovieFormDirector = async function (directorId, directorName) {
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> PREPARING FORM...</p>';
+
+    try {
+        const movies = await window.api.getAllMovies();
+        let movieOpts = `<option value="">Select Movie...</option>`;
+        movies.forEach(m => {
+            movieOpts += `<option value="${m.id}">${m.title}</option>`;
+        });
+
+        const safeName = directorName.replace(/'/g, "\\'");
+
+        body.innerHTML = `
+            <div>
+                <h4 style="color:var(--accent); margin-bottom:15px; border-bottom:1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ASSIGN DIRECTOR TO MOVIE</h4>
+
+                <div class="form-group">
+                    <label>MOVIE</label>
+                    <select id="dir-assign-movie-id">
+                        ${movieOpts}
+                    </select>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                    <button class="btn btn-delete" onclick="openDirectorDetail(${directorId}, '${safeName}')">CANCEL</button>
+                    <button class="btn btn-glow" id="dir-assign-btn" onclick="submitAssignMovieDirector(${directorId}, '${safeName}')">EXECUTE_ASSIGN()</button>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.submitAssignMovieDirector = async function (directorId, directorName) {
+    const movieId = document.getElementById('dir-assign-movie-id').value;
+    if (!movieId) {
+        alert('Validation Error: Movie must be selected.');
+        return;
+    }
+
+    const btn = document.getElementById('dir-assign-btn');
+    btn.innerText = 'ASSIGNING...';
+    btn.disabled  = true;
+
+    const res = await window.api.assignMovieDirector({ movieId, directorId });
+    if (res.success) {
+        openDirectorDetail(directorId, directorName);
+    } else {
+        btn.innerText = 'EXECUTE_ASSIGN()';
+        btn.disabled  = false;
+        alert(`Assignment failed: ${res.error}`);
+    }
+};
+
+// ============================================================
+// EDIT PERSON INFO
+// ============================================================
+
+window.showEditPersonForm = async function (type, id, name) {
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> FETCHING CURRENT DATA...</p>';
+
+    try {
+        let person;
+        if (type === 'actor')    person = await window.api.getActorById(id);
+        else if (type === 'director') person = await window.api.getDirectorById(id);
+        else if (type === 'producer') person = await window.api.getProducerById(id);
+        else                          person = await window.api.getCrewMemberById(id);
+
+        const currentYear = new Date().getFullYear();
+        let yearOptions = '<option value="">Not specified</option>';
+        for (let y = currentYear; y >= 1880; y--) {
+            yearOptions += `<option value="${y}" ${person.birth_year == y ? 'selected' : ''}>${y}</option>`;
+        }
+
+        const hasGender = type !== 'director';
+        const genderHtml = hasGender ? `
+            <div class="form-group">
+                <label>GENDER</label>
+                <select id="edit-person-gender">
+                    <option value="Male"   ${person.gender === 'Male'   ? 'selected' : ''}>Male</option>
+                    <option value="Female" ${person.gender === 'Female' ? 'selected' : ''}>Female</option>
+                </select>
+            </div>` : '';
+
+        const cancelFn = type === 'actor'    ? `openActorDetail(${id}, '${name.replace(/'/g, "\\'")}')` :
+                         type === 'director' ? `openDirectorDetail(${id}, '${name.replace(/'/g, "\\'")}')` :
+                         type === 'producer' ? `openProducerDetail(${id}, '${name.replace(/'/g, "\\'")}')` :
+                                               `openCrewDetail(${id}, '${name.replace(/'/g, "\\'")}')`;
+
+        body.innerHTML = `
+            <div>
+                <h4 style="color:var(--accent); margin-bottom:15px; border-bottom:1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> EDIT INFO: ${name}</h4>
+
+                <div class="form-group">
+                    <label>NAME</label>
+                    <input type="text" id="edit-person-name" value="${person.name.replace(/"/g, '&quot;')}">
+                </div>
+
+                <div class="form-group">
+                    <label>BIRTH YEAR</label>
+                    <select id="edit-person-year">${yearOptions}</select>
+                </div>
+
+                ${genderHtml}
+
+                <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                    <button class="btn btn-delete" onclick="${cancelFn}">CANCEL</button>
+                    <button class="btn btn-glow" id="edit-person-btn" onclick="submitEditPerson('${type}', ${id})">EXECUTE_UPDATE()</button>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.submitEditPerson = async function (type, id) {
+    const name      = document.getElementById('edit-person-name').value.trim();
+    const birthYear = document.getElementById('edit-person-year').value || null;
+
+    if (!name) {
+        alert('Validation Error: Name is required.');
+        return;
+    }
+
+    let gender = null;
+    if (type !== 'director') {
+        gender = document.getElementById('edit-person-gender').value;
+    }
+
+    const btn = document.getElementById('edit-person-btn');
+    btn.innerText = 'UPDATING...';
+    btn.disabled  = true;
+
+    let res;
+    if (type === 'actor')         res = await window.api.updateActor({ id, name, birthYear, gender });
+    else if (type === 'director') res = await window.api.updateDirector({ id, name, birthYear });
+    else if (type === 'producer') res = await window.api.updateProducer({ id, name, birthYear, gender });
+    else                          res = await window.api.updateCrewMember({ id, name, birthYear, gender });
+
+    if (res.success) {
+        loadView(currentView);
+        if (type === 'actor')         openActorDetail(id, name);
+        else if (type === 'director') openDirectorDetail(id, name);
+        else if (type === 'producer') openProducerDetail(id, name);
+        else                          openCrewDetail(id, name);
+    } else {
+        btn.innerText = 'EXECUTE_UPDATE()';
+        btn.disabled  = false;
+        alert(`Update failed: ${res.error}`);
     }
 };
 

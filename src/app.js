@@ -3,12 +3,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { addMovie, removeMovie, getAllMovies, getMovieFullRoster, getMovieTotalSpend, publishMovie } from './controllers/movieController.js';
-import { addActor, removeActor, getAllActors, getMoviesByActorId, addMovieActor } from './controllers/actorController.js';
-import { addDirector, removeDirector, getAllDirectors, getMoviesByDirectorId } from './controllers/directorController.js';
-import { addProducer, removeProducer, getAllProducers, getMoviesByProducerId, addMovieProducer, updateMovieProducerInvestment } from './controllers/producerController.js';
-import { addCrewMember, removeCrewMember, getAllCrewMembers, addMovieCrewMember, getMoviesByCrewMemberId } from './controllers/crewMemberController.js';
+import { addActor, removeActor, getAllActors, getMoviesByActorId, addMovieActor, removeMovieActor, updateActor, updateMovieActor, getActorById } from './controllers/actorController.js';
+import { addDirector, removeDirector, getAllDirectors, getMoviesByDirectorId, addMovieDirector, removeMovieDirector, updateDirector, getDirectorById } from './controllers/directorController.js';
+import { addProducer, removeProducer, getAllProducers, getMoviesByProducerId, addMovieProducer, removeMovieProducer, updateMovieProducerInvestment, updateProducer, getMovieProducers, getProducerById } from './controllers/producerController.js';
+import { addCrewMember, removeCrewMember, getAllCrewMembers, addMovieCrewMember, removeMovieCrewMember, getMoviesByCrewMemberId, updateCrewMember, updateMovieCrewMember, getCrewMemberById } from './controllers/crewMemberController.js';
 import { getMovieFinancialOverview, getTopPaidActors, getProfitableMovies, getGenrePerformance, getDirectorRoi } from './controllers/queryController.js';
-import { upsertMovieFinance } from './controllers/financeController.js';
+import { upsertMovieFinance, getMovieFinance } from './controllers/financeController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,7 +59,7 @@ app.whenReady().then(() => {
     // Advanced Workflows
     ipcMain.handle('update-movie-finance', async (_, data) => {
         try {
-            // data = { movieId, producerId, producerName, budget, productionCost, marketingCost, boxOfficeRevenue }
+            // data = { movieId, producerId, producerName, investment, productionCost, marketingCost, boxOfficeRevenue }
             let finalProducerId = data.producerId;
             // Create producer if 'new' is selected
             if (data.producerId === 'new' && data.producerName) {
@@ -71,7 +71,7 @@ app.whenReady().then(() => {
                 }
             }
 
-            if (finalProducerId) {
+            if (finalProducerId && data.investment != null) {
                 try {
                     await addMovieProducer(data.movieId, finalProducerId, data.investment);
                 } catch (e) {
@@ -79,12 +79,140 @@ app.whenReady().then(() => {
                 }
             }
 
-            // Upsert MovieFinance
-            await upsertMovieFinance(data.movieId, data.productionCost, data.marketingCost, data.boxOfficeRevenue);
+            // Preserve existing revenue when not provided (e.g. draft movies)
+            let boxOfficeRevenue = data.boxOfficeRevenue;
+            if (boxOfficeRevenue === undefined) {
+                const existing = await getMovieFinance(data.movieId);
+                boxOfficeRevenue = existing?.box_office_revenue ?? null;
+            }
+
+            await upsertMovieFinance(data.movieId, data.productionCost, data.marketingCost, boxOfficeRevenue);
             
             return { success: true };
         } catch(err) {
             console.error('Update Finance Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    // --- Get by ID ---
+    ipcMain.handle('get-actor-by-id', (_, id) => safeCall(getActorById, id));
+    ipcMain.handle('get-director-by-id', (_, id) => safeCall(getDirectorById, id));
+    ipcMain.handle('get-producer-by-id', (_, id) => safeCall(getProducerById, id));
+    ipcMain.handle('get-crew-member-by-id', (_, id) => safeCall(getCrewMemberById, id));
+    ipcMain.handle('get-movie-finance', (_, id) => safeCall(getMovieFinance, id));
+    ipcMain.handle('get-movie-producers', (_, id) => safeCall(getMovieProducers, id));
+
+    // --- Assign director ---
+    ipcMain.handle('assign-movie-director', async (_, data) => {
+        try {
+            await addMovieDirector(data.movieId, data.directorId);
+            return { success: true };
+        } catch(err) {
+            console.error('Assign Director Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    // --- Unassign ---
+    ipcMain.handle('unassign-movie-actor', async (_, data) => {
+        try {
+            await removeMovieActor(data.movieId, data.actorId);
+            return { success: true };
+        } catch(err) {
+            console.error('Unassign Actor Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('unassign-movie-director', async (_, data) => {
+        try {
+            await removeMovieDirector(data.movieId, data.directorId);
+            return { success: true };
+        } catch(err) {
+            console.error('Unassign Director Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('unassign-movie-crew', async (_, data) => {
+        try {
+            await removeMovieCrewMember(data.movieId, data.crewId);
+            return { success: true };
+        } catch(err) {
+            console.error('Unassign Crew Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('unassign-movie-producer', async (_, data) => {
+        try {
+            await removeMovieProducer(data.movieId, data.producerId);
+            return { success: true };
+        } catch(err) {
+            console.error('Unassign Producer Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    // --- Re-assign (update role/salary) ---
+    ipcMain.handle('update-movie-actor', async (_, data) => {
+        try {
+            await updateMovieActor(data.movieId, data.actorId, data.role, data.salary);
+            return { success: true };
+        } catch(err) {
+            console.error('Update Movie Actor Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('update-movie-crew', async (_, data) => {
+        try {
+            await updateMovieCrewMember(data.movieId, data.crewId, data.jobTitle, data.salary);
+            return { success: true };
+        } catch(err) {
+            console.error('Update Movie Crew Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    // --- Update person info ---
+    ipcMain.handle('update-actor', async (_, data) => {
+        try {
+            await updateActor(data.id, data.name, data.birthYear, data.gender);
+            return { success: true };
+        } catch(err) {
+            console.error('Update Actor Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('update-director', async (_, data) => {
+        try {
+            await updateDirector(data.id, data.name, data.birthYear);
+            return { success: true };
+        } catch(err) {
+            console.error('Update Director Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('update-producer', async (_, data) => {
+        try {
+            await updateProducer(data.id, data.name, data.birthYear, data.gender);
+            return { success: true };
+        } catch(err) {
+            console.error('Update Producer Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('update-crew-member', async (_, data) => {
+        try {
+            await updateCrewMember(data.id, data.name, data.birthYear, data.gender);
+            return { success: true };
+        } catch(err) {
+            console.error('Update Crew Member Error:', err);
             return { success: false, error: err.message };
         }
     });
