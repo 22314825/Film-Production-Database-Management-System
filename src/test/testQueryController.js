@@ -3,6 +3,7 @@ import { getProfitableMovies, getMovieFullCast, getDirectorFilmography, getTopPa
 import { addMovie, removeMovie } from '../controllers/movieController.js';
 import { addActor, removeActor, addMovieActor, removeMovieActor } from '../controllers/actorController.js';
 import { addMovieFinance, removeMovieFinance } from '../controllers/financeController.js';
+import { addProducer, removeProducer, addMovieProducer } from '../controllers/producerController.js';
 
 export async function run() {
     console.log('\n── Query Controller (Views & PL/pgSQL) ──');
@@ -11,7 +12,11 @@ export async function run() {
     const movie = await addMovie(uniqueName('movie'), 'Action', 'Heist', 2023);
     const actor = await addActor(uniqueName('actor'), 1988, 'Female');
     await addMovieActor(movie.id, actor.id, 'Lead', 120000);
-    await addMovieFinance(movie.id, 2000000, 1500000, 200000, 4000000);
+
+    const producer = await addProducer(uniqueName('producer'));
+    await addMovieProducer(movie.id, producer.id, 2000000);
+    
+    await addMovieFinance(movie.id, 1500000, 200000, 4000000);
 
     await test('getProfitableMovies returns an array', async () => {
         const rows = await getProfitableMovies();
@@ -85,5 +90,6 @@ export async function run() {
     await removeMovieActor(movie.id, actor.id).catch(() => {});
     await removeMovieFinance(movie.id).catch(() => {});
     await removeActor(actor.id).catch(() => {});
+    await removeProducer(producer.id).catch(() => {});
     await removeMovie(movie.id).catch(() => {});
 }

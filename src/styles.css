@@ -218,6 +218,54 @@ tbody tr:last-child td {
     font-weight: bold;
 }
 
+.card-badge.draft {
+    background: rgba(255, 170, 0, 0.1);
+    color: #ffaa00;
+    border: 1px solid rgba(255, 170, 0, 0.5);
+    box-shadow: 0 0 8px rgba(255, 170, 0, 0.3);
+}
+
+.card-badge.published {
+    background: rgba(0, 255, 204, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0, 255, 204, 0.5);
+    box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+}
+
+.filters.hidden {
+    display: none;
+}
+
+.filter-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    padding: 6px 12px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+}
+
+.filter-btn:hover {
+    color: #fff;
+    border-color: var(--text-secondary);
+}
+
+.filter-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+    background: rgba(0, 255, 204, 0.1);
+    text-shadow: 0 0 8px var(--accent-glow);
+    box-shadow: 0 0 8px var(--accent-glow) inset;
+}
+
 .card-body {
     color: var(--text-secondary);
     font-size: 0.9rem;

@@ -18,12 +18,16 @@ export async function getProducerById(id) {
     return rows[0] ?? null;
 }
 
-export async function addMovieProducer(movieId, producerId) {
-    await sql`SELECT add_movie_producer(${movieId}, ${producerId})`;
+export async function addMovieProducer(movieId, producerId, investment) {
+    await sql`SELECT add_movie_producer(${movieId}, ${producerId}, ${investment})`;
 }
 
 export async function removeMovieProducer(movieId, producerId) {
     await sql`SELECT remove_movie_producer(${movieId}, ${producerId})`;
+}
+
+export async function updateMovieProducerInvestment(movieId, producerId, investment) {
+    await sql`SELECT update_movie_producer_investment(${movieId}, ${producerId}, ${investment})`;
 }
 
 export async function getMoviesByProducerId(producerId) {

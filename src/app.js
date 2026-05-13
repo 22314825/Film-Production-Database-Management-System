@@ -2,10 +2,10 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-import { addMovie, removeMovie, getAllMovies, getMovieFullRoster, getMovieTotalSpend } from './controllers/movieController.js';
+import { addMovie, removeMovie, getAllMovies, getMovieFullRoster, getMovieTotalSpend, publishMovie } from './controllers/movieController.js';
 import { addActor, removeActor, getAllActors, getMoviesByActorId, addMovieActor } from './controllers/actorController.js';
 import { addDirector, removeDirector, getAllDirectors, getMoviesByDirectorId } from './controllers/directorController.js';
-import { addProducer, removeProducer, getAllProducers, getMoviesByProducerId, addMovieProducer } from './controllers/producerController.js';
+import { addProducer, removeProducer, getAllProducers, getMoviesByProducerId, addMovieProducer, updateMovieProducerInvestment } from './controllers/producerController.js';
 import { addCrewMember, removeCrewMember, getAllCrewMembers, addMovieCrewMember, getMoviesByCrewMemberId } from './controllers/crewMemberController.js';
 import { getMovieFinancialOverview, getTopPaidActors, getProfitableMovies, getGenrePerformance, getDirectorRoi } from './controllers/queryController.js';
 import { upsertMovieFinance } from './controllers/financeController.js';
@@ -71,15 +71,17 @@ app.whenReady().then(() => {
                 }
             }
 
-            // Upsert MovieFinance
-            await upsertMovieFinance(data.movieId, data.budget, data.productionCost, data.marketingCost, data.boxOfficeRevenue);
-            
             if (finalProducerId) {
-                // Delete existing producer links to replace them, since only one main producer might be intended,
-                // but let's just insert it and handle potential uniqueness. 
-                // Wait, if we use addMovieProducer, it will just insert. There might be multiple producers, which is fine.
-                await addMovieProducer(data.movieId, finalProducerId);
+                try {
+                    await addMovieProducer(data.movieId, finalProducerId, data.investment);
+                } catch (e) {
+                    await updateMovieProducerInvestment(data.movieId, finalProducerId, data.investment);
+                }
             }
+
+            // Upsert MovieFinance
+            await upsertMovieFinance(data.movieId, data.productionCost, data.marketingCost, data.boxOfficeRevenue);
+            
             return { success: true };
         } catch(err) {
             console.error('Update Finance Error:', err);
@@ -103,6 +105,16 @@ app.whenReady().then(() => {
             return { success: true };
         } catch(err) {
             console.error('Assign Crew Error:', err);
+            return { success: false, error: err.message };
+        }
+    });
+
+    ipcMain.handle('publish-movie', async (_, data) => {
+        try {
+            const res = await publishMovie(data.id, data.title, data.genre, data.topic, data.release_year);
+            return { success: true, data: res };
+        } catch(err) {
+            console.error('Publish Movie Error:', err);
             return { success: false, error: err.message };
         }
     });

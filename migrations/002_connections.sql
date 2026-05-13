@@ -34,5 +34,6 @@ CREATE TABLE Movie_Producer
 (
     movie_id    INT NOT NULL REFERENCES Movie(id)    ON DELETE CASCADE,
     producer_id INT NOT NULL REFERENCES Producer(id) ON DELETE CASCADE,
+    investment  DECIMAL(15, 2) NOT NULL,
     PRIMARY KEY (movie_id, producer_id)
 );

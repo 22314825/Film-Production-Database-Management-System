@@ -25,7 +25,7 @@ export async function run() {
     await test('addMovieProducer links producer to movie', async () => {
         const movie = await addMovie(uniqueName('movie'), 'Comedy');
         movieId = movie.id;
-        await addMovieProducer(movieId, producerId);
+        await addMovieProducer(movieId, producerId, 500000);
     });
 
     await test('removeMovieProducer unlinks producer from movie', async () => {

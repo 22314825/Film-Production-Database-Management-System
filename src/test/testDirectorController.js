@@ -2,11 +2,12 @@ import { uniqueName, assert, test } from './helpers.js';
 import { addDirector, removeDirector, getDirectorById, addMovieDirector, removeMovieDirector, getDirectorRoi } from '../controllers/directorController.js';
 import { addMovie, removeMovie } from '../controllers/movieController.js';
 import { addMovieFinance, removeMovieFinance } from '../controllers/financeController.js';
+import { addProducer, removeProducer, addMovieProducer } from '../controllers/producerController.js';
 
 export async function run() {
     console.log('\n── Director Controller ──');
 
-    let directorId, movieId;
+    let directorId, movieId, producerId;
 
     await test('addDirector returns the inserted row', async () => {
         const name = uniqueName('director');
@@ -27,10 +28,14 @@ export async function run() {
         const movie = await addMovie(uniqueName('movie'), 'Thriller');
         movieId = movie.id;
         await addMovieDirector(movieId, directorId);
+
+        const producer = await addProducer(uniqueName('producer'));
+        producerId = producer.id;
+        await addMovieProducer(movieId, producerId, 1000000);
     });
 
     await test('getDirectorRoi returns ROI data after finance is added', async () => {
-        await addMovieFinance(movieId, 1000000, 800000, 100000, 2000000);
+        await addMovieFinance(movieId, 800000, 100000, 2000000);
         const roi = await getDirectorRoi(directorId);
         assert(roi !== null, 'roi row is not null');
         assert(roi.director_id === directorId, 'director_id matches');
@@ -48,5 +53,7 @@ export async function run() {
         assert(row === null, 'director no longer exists');
     });
 
+    await removeDirector(directorId).catch(() => {});
+    await removeProducer(producerId).catch(() => {});
     await removeMovie(movieId).catch(() => {});
 }

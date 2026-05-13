@@ -27,6 +27,46 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION publish_movie(
+    p_id INT,
+    p_title VARCHAR,
+    p_genre VARCHAR,
+    p_topic VARCHAR,
+    p_release_year INT
+) RETURNS Movie AS $$
+DECLARE
+    v_finance_exists BOOLEAN;
+    v_row Movie;
+BEGIN
+    IF p_title IS NULL OR p_genre IS NULL OR p_topic IS NULL OR p_release_year IS NULL THEN
+        RAISE EXCEPTION 'Cannot publish movie: title, genre, topic, and release_year must be provided.';
+    END IF;
+
+    SELECT EXISTS(SELECT 1 FROM MovieFinance WHERE movie_id = p_id) INTO v_finance_exists;
+    IF NOT v_finance_exists THEN
+        RAISE EXCEPTION 'Cannot publish movie: no financial records found. Assign producers and finances first.';
+    END IF;
+
+    UPDATE Movie
+    SET title = p_title,
+        genre = p_genre,
+        topic = p_topic,
+        release_year = p_release_year,
+        status = 'published'
+    WHERE id = p_id
+    RETURNING * INTO v_row;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Movie with id % not found', p_id;
+    END IF;
+
+    RETURN v_row;
+END;
+$$ LANGUAGE plpgsql;
+
+-- User's requested migration script to update existing complete movies
+UPDATE Movie SET status = 'published' WHERE release_year IS NOT NULL AND genre IS NOT NULL AND topic IS NOT NULL;
+
 
 -- ============================================================
 -- ACTOR
@@ -194,10 +234,14 @@ $$ LANGUAGE plpgsql;
 -- MOVIE_PRODUCER
 -- ============================================================
 
-CREATE OR REPLACE FUNCTION add_movie_producer(p_movie_id INT, p_producer_id INT) RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION add_movie_producer(
+    p_movie_id INT, 
+    p_producer_id INT, 
+    p_investment DECIMAL(15, 2)
+) RETURNS VOID AS $$
 BEGIN
-    INSERT INTO Movie_Producer (movie_id, producer_id)
-    VALUES (p_movie_id, p_producer_id);
+    INSERT INTO Movie_Producer (movie_id, producer_id, investment)
+    VALUES (p_movie_id, p_producer_id, p_investment);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -209,6 +253,45 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_movie_producer_investment(
+    p_movie_id INT, 
+    p_producer_id INT, 
+    p_investment DECIMAL(15, 2)
+) RETURNS VOID AS $$
+BEGIN
+    UPDATE Movie_Producer 
+    SET investment = p_investment 
+    WHERE movie_id = p_movie_id AND producer_id = p_producer_id;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Movie_Producer entry (movie_id=%, producer_id=%) not found', p_movie_id, p_producer_id;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trg_sync_movie_budget()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_movie_id INT;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        v_movie_id := OLD.movie_id;
+    ELSE
+        v_movie_id := NEW.movie_id;
+    END IF;
+
+    UPDATE MovieFinance
+    SET budget = (SELECT COALESCE(SUM(investment), 0) FROM Movie_Producer WHERE movie_id = v_movie_id)
+    WHERE movie_id = v_movie_id;
+    
+    RETURN NULL; -- AFTER trigger
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER sync_movie_budget
+AFTER INSERT OR UPDATE OR DELETE ON Movie_Producer
+FOR EACH ROW EXECUTE FUNCTION trg_sync_movie_budget();
 
 
 -- ============================================================
@@ -243,16 +326,21 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION add_movie_finance(
     p_movie_id           INT,
-    p_budget             DECIMAL(15, 2) DEFAULT NULL,
     p_production_cost    DECIMAL(15, 2) DEFAULT NULL,
     p_marketing_cost     DECIMAL(15, 2) DEFAULT NULL,
     p_box_office_revenue DECIMAL(15, 2) DEFAULT NULL
 ) RETURNS MovieFinance AS $$
 DECLARE
     v_row MovieFinance;
+    v_budget DECIMAL(15, 2);
 BEGIN
+    SELECT SUM(investment) INTO v_budget FROM Movie_Producer WHERE movie_id = p_movie_id;
+    IF v_budget IS NULL THEN
+        RAISE EXCEPTION 'Cannot create finance for movie_id=%: no producers assigned', p_movie_id;
+    END IF;
+
     INSERT INTO MovieFinance (movie_id, budget, production_cost, marketing_cost, box_office_revenue)
-    VALUES (p_movie_id, p_budget, p_production_cost, p_marketing_cost, p_box_office_revenue)
+    VALUES (p_movie_id, v_budget, p_production_cost, p_marketing_cost, p_box_office_revenue)
     RETURNING * INTO v_row;
     RETURN v_row;
 END;

@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.addEventListener('click', (e) => {
             document.querySelectorAll('.nav-links li').forEach(el => el.classList.remove('active'));
             e.currentTarget.classList.add('active');
-            
+
             currentView = e.currentTarget.getAttribute('data-view');
             loadView(currentView);
         });
@@ -14,21 +14,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Modal Close
     document.getElementById('modal-close').addEventListener('click', closeAddModal);
-    
+
     // Modal Submit
     document.getElementById('modal-submit').addEventListener('click', submitAddModal);
 
+    // Filter Click Handling
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            window.currentMovieFilter = e.currentTarget.getAttribute('data-filter');
+            loadView('movies');
+        });
+    });
+
     // Load initial view
+    window.currentMovieFilter = 'all';
     loadView('movies');
 });
 
 // Entity schemas for Add Modal
 const schemas = {
     movies: [
-        { name: 'title', label: 'Title', type: 'text' },
-        { name: 'genre', label: 'Genre', type: 'text' },
-        { name: 'topic', label: 'Topic', type: 'text' },
-        { name: 'release_year', label: 'Release Year', type: 'year-select' }
+        { name: 'title', label: 'Project Working Title', type: 'text' }
     ],
     actors: [
         { name: 'name', label: 'Name', type: 'text' },
@@ -51,7 +59,7 @@ const schemas = {
     ]
 };
 
-window.deleteRecord = async function(type, id) {
+window.deleteRecord = async function (type, id) {
     if (confirm(`Are you sure you want to delete this record (ID: ${id})?`)) {
         const res = await window.api.deleteEntity(type, id);
         if (res.success) {
@@ -62,12 +70,21 @@ window.deleteRecord = async function(type, id) {
     }
 };
 
-window.openAddModal = function(type) {
-    currentAddType = type;
-    const schema = schemas[type];
-    if (!schema) return;
+window.openAddModal = async function (type) {
+    if (type === 'movies') {
+        const tempName = 'temp_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const res = await window.api.addEntity('movies', { title: tempName });
+        if (res.success) {
+            loadView('movies');
+        } else {
+            alert(`Failed to create draft: ${res.error}`);
+        }
+        return;
+    }
 
+    currentAddType = type;
     document.getElementById('modal-title').innerText = `>> SYS.INSERT_${type.toUpperCase()}`;
+    const schema = schemas[type];
     const container = document.getElementById('modal-form-container');
     container.innerHTML = '';
 
@@ -75,7 +92,7 @@ window.openAddModal = function(type) {
         const id = `input-${field.name}`;
         const group = document.createElement('div');
         group.className = 'form-group';
-        
+
         let inputHtml = '';
         if (field.type === 'select') {
             inputHtml = `<select id="${id}">
@@ -91,7 +108,7 @@ window.openAddModal = function(type) {
         } else {
             inputHtml = `<input type="${field.type}" id="${id}" placeholder="Enter ${field.label.toLowerCase()}...">`;
         }
-        
+
         group.innerHTML = `<label for="${id}">${field.name.toUpperCase()}</label>${inputHtml}`;
         container.appendChild(group);
     });
@@ -113,10 +130,7 @@ async function submitAddModal() {
         data[field.name] = val;
     });
 
-    if (currentAddType === 'movies' && (!data.title || !data.title.trim())) {
-        alert("Validation Error: Movie Title is required.");
-        return;
-    } else if (currentAddType !== 'movies' && (!data.name || !data.name.trim())) {
+    if (currentAddType !== 'movies' && (!data.name || !data.name.trim())) {
         alert("Validation Error: Name is required.");
         return;
     }
@@ -126,7 +140,7 @@ async function submitAddModal() {
     submitBtn.disabled = true;
 
     const res = await window.api.addEntity(currentAddType, data);
-    
+
     submitBtn.innerText = 'EXECUTE_INSERT()';
     submitBtn.disabled = false;
 
@@ -148,7 +162,7 @@ function buildGenericTable(data, title, entityType = null) {
         return html;
     }
     const keys = Object.keys(data[0]);
-    
+
     let html = `<div style="margin-bottom: 30px;">
         <h3 style="color: var(--accent); margin-bottom: 15px; font-weight: 600;">> ${title}</h3>
         <div class="table-container">
@@ -156,19 +170,19 @@ function buildGenericTable(data, title, entityType = null) {
             <thead><tr>${keys.map(k => `<th>${k.replace(/_/g, ' ')}</th>`).join('')}${entityType ? '<th>ACTION</th>' : ''}</tr></thead>
             <tbody>
                 ${data.map(row => `<tr>${keys.map(k => {
-                    let val = row[k];
-                    if (val == null) return '<td style="color:#64748b;">NULL</td>';
-                    if (k.toLowerCase().includes('revenue') || k.toLowerCase().includes('cost') || k.toLowerCase().includes('budget') || k.toLowerCase().includes('pay') || k.toLowerCase().includes('profit') || k.toLowerCase().includes('spend')) {
-                        val = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
-                    } else if (k.toLowerCase().includes('pct') || k.toLowerCase().includes('rate')) {
-                        val = val + '%';
-                    } else if (k.toLowerCase() === 'id' || k.toLowerCase().includes('_id')) {
-                        val = `<span style="color:var(--accent);">#${val}</span>`;
-                    } else if (k.toLowerCase() === 'name' || k.toLowerCase() === 'title') {
-                        val = `<strong style="color:#fff;">${val}</strong>`;
-                    }
-                    return `<td>${val}</td>`;
-                }).join('')}
+        let val = row[k];
+        if (val == null) return '<td style="color:#64748b;">NULL</td>';
+        if (k.toLowerCase().includes('revenue') || k.toLowerCase().includes('cost') || k.toLowerCase().includes('budget') || k.toLowerCase().includes('pay') || k.toLowerCase().includes('profit') || k.toLowerCase().includes('spend')) {
+            val = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0);
+        } else if (k.toLowerCase().includes('pct') || k.toLowerCase().includes('rate')) {
+            val = val + '%';
+        } else if (k.toLowerCase() === 'id' || k.toLowerCase().includes('_id')) {
+            val = `<span style="color:var(--accent);">#${val}</span>`;
+        } else if (k.toLowerCase() === 'name' || k.toLowerCase() === 'title') {
+            val = `<strong style="color:#fff;">${val}</strong>`;
+        }
+        return `<td>${val}</td>`;
+    }).join('')}
                 ${entityType ? `<td><button class="btn-delete" onclick="deleteRecord('${entityType}', ${row.id})">DELETE</button></td>` : ''}
                 </tr>`).join('')}
             </tbody>
@@ -183,22 +197,26 @@ function buildCardGrid(data, title, entityType) {
         return `<div style="margin-bottom: 30px;"><h3 style="color: var(--accent); margin-bottom: 10px; font-weight:600;">> ${title}</h3><p style="color:var(--text-secondary);">No data found.</p>
         <div class="add-btn-container" style="background:transparent; border:none; text-align:left; padding:0; margin-top:10px;"><button class="btn btn-glow" onclick="openAddModal('${entityType}')">+ ADD NEW MOVIE</button></div></div>`;
     }
-    
+
     let html = `<div style="margin-bottom: 30px;">
         <h3 style="color: var(--accent); margin-bottom: 20px; font-weight: 600;">> ${title}</h3>
         <div class="card-grid">`;
-        
+
     const f = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
     data.forEach(item => {
         let statsHtml = '';
 
+        let badgeClass = item.status === 'published' ? 'published' : 'draft';
+        let badgeText = item.status === 'published' ? '[PUBLISHED]' : '[DRAFT]';
+
         html += `
-        <div class="card" onclick="openMovieDetail(${item.id}, '${item.title.replace(/'/g, "\\'")}')">
-            <div class="card-badge">${item.release_year || 'N/A'}</div>
+        <div class="card" onclick="openMovieDetail(${item.id}, '${item.title.replace(/'/g, "\\'")}', '${item.status}')">
+            <div class="card-badge ${badgeClass}">${badgeText}</div>
             <div class="card-title">${item.title}</div>
             <div class="card-body">
-                <p><strong>Genre:</strong> <span style="color:#fff;">${item.genre || 'N/A'}</span></p>
+                ${item.status === 'published' ? `<p><strong>Release Year:</strong> <span style="color:#fff;">${item.release_year}</span></p>` : ''}
+                <p style="margin-top:8px;"><strong>Genre:</strong> <span style="color:#fff;">${item.genre || 'N/A'}</span></p>
                 <p style="margin-top:8px;"><strong>Topic:</strong> <span style="color:#fff;">${item.topic || 'N/A'}</span></p>
                 ${statsHtml}
             </div>
@@ -207,13 +225,13 @@ function buildCardGrid(data, title, entityType) {
             </div>
         </div>`;
     });
-    
+
     html += `</div>
     <div class="add-btn-container" style="background:transparent; border:none; text-align:left; padding:0; margin-top:20px;">
         <button class="btn btn-glow" onclick="openAddModal('${entityType}')">+ ADD NEW MOVIE</button>
     </div>
     </div>`;
-    
+
     return html;
 }
 
@@ -254,7 +272,7 @@ function buildPersonCardGrid(data, title, entityType, detailFn) {
     return html;
 }
 
-window.openMovieDetail = async function(id, title) {
+window.openMovieDetail = async function (id, title, status) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('detail-title').innerText = `>> SYS.DETAILS [${title}]`;
     const body = document.getElementById('detail-body');
@@ -297,7 +315,11 @@ window.openMovieDetail = async function(id, title) {
 
         html += `</div>`;
 
-        html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showEditFinanceForm(${id}, '${title.replace(/'/g, "\\'")}')">EDIT FINANCES</button>`;
+        if (status === 'draft') {
+            html += `<button class="btn btn-glow" style="margin-top:20px; width:100%; border-color: #ffaa00; color: #ffaa00;" onclick="showPublishMovieForm(${id}, '${title.replace(/'/g, "\\'")}')">PUBLISH PROJECT</button>`;
+        }
+
+        html += `<button class="btn btn-glow" style="margin-top:10px; width:100%;" onclick="showEditFinanceForm(${id}, '${title.replace(/'/g, "\\'")}', '${status}')">EDIT FINANCES</button>`;
 
         body.innerHTML = html;
 
@@ -310,7 +332,7 @@ document.getElementById('detail-close').addEventListener('click', () => {
     document.getElementById('detail-modal').classList.add('hidden');
 });
 
-window.openActorDetail = async function(id, name) {
+window.openActorDetail = async function (id, name) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('detail-title').innerText = `>> SYS.ACTOR [${name}]`;
     const body = document.getElementById('detail-body');
@@ -339,9 +361,9 @@ window.openActorDetail = async function(id, name) {
         }
 
         html += `</ul>`;
-        
+
         html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieForm('actor', ${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN MOVIE</button>`;
-        
+
         body.innerHTML = html;
 
     } catch (err) {
@@ -349,7 +371,7 @@ window.openActorDetail = async function(id, name) {
     }
 };
 
-window.openDirectorDetail = async function(id, name) {
+window.openDirectorDetail = async function (id, name) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('detail-title').innerText = `>> SYS.DIRECTOR [${name}]`;
     const body = document.getElementById('detail-body');
@@ -396,7 +418,7 @@ window.openDirectorDetail = async function(id, name) {
     }
 };
 
-window.openProducerDetail = async function(id, name) {
+window.openProducerDetail = async function (id, name) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('detail-title').innerText = `>> SYS.PRODUCER [${name}]`;
     const body = document.getElementById('detail-body');
@@ -430,7 +452,7 @@ window.openProducerDetail = async function(id, name) {
 };
 
 
-window.openCrewDetail = async function(id, name) {
+window.openCrewDetail = async function (id, name) {
     const modal = document.getElementById('detail-modal');
     document.getElementById('detail-title').innerText = `>> SYS.CREW [${name}]`;
     const body = document.getElementById('detail-body');
@@ -458,34 +480,34 @@ window.openCrewDetail = async function(id, name) {
             html += `<li style="color:var(--text-secondary);">No movie assignments found.</li>`;
         }
         html += `</ul>`;
-        
+
         html += `<button class="btn btn-glow" style="margin-top:20px; width:100%;" onclick="showAssignMovieForm('crew', ${id}, '${name.replace(/'/g, "\\'")}')">ASSIGN MOVIE</button>`;
-        
+
         body.innerHTML = html;
     } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
     }
 };
 
-window.showEditFinanceForm = async function(movieId, movieTitle) {
+window.showEditFinanceForm = async function (movieId, movieTitle, status) {
     const body = document.getElementById('detail-body');
     body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> PREPARING FORM...</p>';
-    
+
     try {
         const producers = await window.api.getAllProducers();
         const finance = await window.api.getMovieTotalSpend(movieId);
-        
+
         // Try to fetch existing movie finance data. If we can't, we just show empty inputs.
         // Actually, we can get current financial values from 'finance' if they match, but getMovieTotalSpend only returns total_spend.
         // It's okay, we'll just show empty for now, or you could add a getMovieFinance route.
         // Let's just keep them empty initially as a true form.
-        
+
         let producerOpts = `<option value="">Select Producer...</option>`;
         producers.forEach(p => {
             producerOpts += `<option value="${p.id}">${p.name}</option>`;
         });
         producerOpts += `<option value="new">+ CREATE NEW PRODUCER</option>`;
-        
+
         const html = `
             <div style="margin-bottom:20px;">
                 <h4 style="color:var(--accent); margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> EDIT FINANCES</h4>
@@ -503,8 +525,8 @@ window.showEditFinanceForm = async function(movieId, movieTitle) {
                 </div>
                 
                 <div class="form-group">
-                    <label>BUDGET ($)</label>
-                    <input type="number" id="fin-budget" placeholder="0">
+                    <label>PRODUCER INVESTMENT ($)</label>
+                    <input type="number" id="fin-investment" placeholder="0">
                 </div>
                 
                 <div class="form-group">
@@ -523,48 +545,48 @@ window.showEditFinanceForm = async function(movieId, movieTitle) {
                 </div>
                 
                 <div style="display:flex; justify-content:space-between; margin-top:20px;">
-                    <button class="btn btn-delete" onclick="openMovieDetail(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">CANCEL</button>
-                    <button class="btn btn-glow" id="fin-submit-btn" onclick="submitEditFinance(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">EXECUTE_UPDATE()</button>
+                    <button class="btn btn-delete" onclick="openMovieDetail(${movieId}, '${movieTitle.replace(/'/g, "\\'")}', '${status}')">CANCEL</button>
+                    <button class="btn btn-glow" id="fin-submit-btn" onclick="submitEditFinance(${movieId}, '${movieTitle.replace(/'/g, "\\'")}', '${status}')">EXECUTE_UPDATE()</button>
                 </div>
             </div>
         `;
         body.innerHTML = html;
-    } catch(err) {
+    } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
     }
 };
 
-window.submitEditFinance = async function(movieId, movieTitle) {
+window.submitEditFinance = async function (movieId, movieTitle, status) {
     const prodId = document.getElementById('fin-producer').value;
     if (!prodId) {
         alert("Validation Error: Producer must be selected.");
         return;
     }
-    
+
     const prodName = document.getElementById('fin-new-prod-name').value;
     if (prodId === 'new' && (!prodName || !prodName.trim())) {
         alert("Validation Error: New Producer Name is required.");
         return;
     }
-    
+
     const data = {
         movieId: movieId,
         producerId: prodId,
         producerName: prodName,
-        budget: document.getElementById('fin-budget').value || null,
+        investment: document.getElementById('fin-investment').value || null,
         productionCost: document.getElementById('fin-prod-cost').value || null,
         marketingCost: document.getElementById('fin-mkt-cost').value || null,
         boxOfficeRevenue: document.getElementById('fin-box-office').value || null
     };
-    
+
     const btn = document.getElementById('fin-submit-btn');
     btn.innerText = 'UPDATING...';
     btn.disabled = true;
-    
+
     const res = await window.api.updateMovieFinance(data);
     if (res.success) {
         loadView(currentView); // Refresh background view
-        openMovieDetail(movieId, movieTitle); // Go back to details
+        openMovieDetail(movieId, movieTitle, status); // Go back to details
     } else {
         btn.innerText = 'EXECUTE_UPDATE()';
         btn.disabled = false;
@@ -572,18 +594,18 @@ window.submitEditFinance = async function(movieId, movieTitle) {
     }
 };
 
-window.showAssignMovieForm = async function(type, personId, personName) {
+window.showAssignMovieForm = async function (type, personId, personName) {
     const body = document.getElementById('detail-body');
     body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> PREPARING FORM...</p>';
-    
+
     try {
         const movies = await window.api.getAllMovies();
-        
+
         let movieOpts = `<option value="">Select Movie...</option>`;
         movies.forEach(m => {
             movieOpts += `<option value="${m.id}">${m.title} (${m.release_year})</option>`;
         });
-        
+
         const html = `
             <div style="margin-bottom:20px;">
                 <h4 style="color:var(--accent); margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ASSIGN TO MOVIE</h4>
@@ -612,16 +634,16 @@ window.showAssignMovieForm = async function(type, personId, personName) {
             </div>
         `;
         body.innerHTML = html;
-    } catch(err) {
+    } catch (err) {
         body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
     }
 };
 
-window.submitAssignMovie = async function(type, personId, personName) {
+window.submitAssignMovie = async function (type, personId, personName) {
     const movieId = document.getElementById('assign-movie-id').value;
     const role = document.getElementById('assign-role').value;
     const salary = document.getElementById('assign-salary').value;
-    
+
     if (!movieId) {
         alert("Validation Error: Movie must be selected.");
         return;
@@ -630,18 +652,18 @@ window.submitAssignMovie = async function(type, personId, personName) {
         alert("Validation Error: Salary is required.");
         return;
     }
-    
+
     const btn = document.getElementById('assign-submit-btn');
     btn.innerText = 'ASSIGNING...';
     btn.disabled = true;
-    
+
     let res;
     if (type === 'actor') {
         res = await window.api.assignMovieActor({ movieId, actorId: personId, role: role || null, salary });
     } else {
         res = await window.api.assignMovieCrew({ movieId, crewId: personId, jobTitle: role || null, salary });
     }
-    
+
     if (res.success) {
         if (type === 'actor') openActorDetail(personId, personName);
         else openCrewDetail(personId, personName);
@@ -652,28 +674,139 @@ window.submitAssignMovie = async function(type, personId, personName) {
     }
 };
 
+window.showPublishMovieForm = async function (movieId, movieTitle) {
+    const body = document.getElementById('detail-body');
+    body.innerHTML = '<p class="blink" style="color:var(--accent); font-family:monospace;">> PREPARING FORM...</p>';
+
+    try {
+        const currentYear = new Date().getFullYear();
+        let yearOptions = '<option value="">Select Year...</option>';
+        for (let y = currentYear + 5; y >= 1880; y--) {
+            yearOptions += `<option value="${y}">${y}</option>`;
+        }
+
+        const html = `
+            <div style="margin-bottom:20px;">
+                <h4 style="color:#ffaa00; margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> PUBLISH: ${movieTitle}</h4>
+                <p style="color:var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
+                    Warning: A project cannot be published without an assigned Producer (Finance Record).
+                </p>
+                
+                <div class="form-group">
+                    <label for="pub-title">FINAL TITLE [REQUIRED]</label>
+                    <input type="text" id="pub-title" value="${movieTitle.replace(/"/g, '&quot;')}" autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pub-genre">GENRE [REQUIRED]</label>
+                    <input type="text" id="pub-genre" placeholder="e.g. Sci-Fi, Action...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="pub-topic">TOPIC [REQUIRED]</label>
+                    <input type="text" id="pub-topic" placeholder="e.g. Cybernetics, AI Rebellion...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="pub-year">RELEASE YEAR [REQUIRED]</label>
+                    <select id="pub-year">
+                        ${yearOptions}
+                    </select>
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                    <button class="btn btn-delete" onclick="openMovieDetail(${movieId}, '${movieTitle.replace(/'/g, "\\'")}', 'draft')">CANCEL</button>
+                    <button class="btn btn-glow" style="border-color: #ffaa00; color: #ffaa00;" id="pub-submit-btn" onclick="submitPublishMovie(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">EXECUTE_PUBLISH()</button>
+                </div>
+            </div>
+        `;
+        body.innerHTML = html;
+    } catch (err) {
+        body.innerHTML = `<p style="color:var(--danger);">Error: ${err.message}</p>`;
+    }
+};
+
+window.submitPublishMovie = async function (movieId, movieTitle) {
+    const title = document.getElementById('pub-title').value;
+    const genre = document.getElementById('pub-genre').value;
+    const topic = document.getElementById('pub-topic').value;
+    const year = document.getElementById('pub-year').value;
+
+    if (!title || !genre || !topic || !year) {
+        alert("Validation Error: All fields (Title, Genre, Topic, Release Year) are required to publish.");
+        return;
+    }
+
+    if (title.trim() === movieTitle && movieTitle.startsWith('temp_')) {
+        alert("Validation Error: You must change the auto-generated temporary title before publishing.");
+        return;
+    }
+
+    if (title.trim().toLowerCase().startsWith('temp_') || title.trim().toLowerCase() === 'temp') {
+        alert("Validation Error: Final title cannot be or start with 'temp'.");
+        return;
+    }
+
+    const btn = document.getElementById('pub-submit-btn');
+    btn.innerText = 'PUBLISHING...';
+    btn.disabled = true;
+
+    try {
+        const res = await window.api.publishMovie({
+            id: movieId,
+            title: title.trim(),
+            genre: genre,
+            topic: topic,
+            release_year: parseInt(year)
+        });
+
+        if (res.success) {
+            loadView(currentView); // Refresh background view
+            document.getElementById('detail-modal').classList.add('hidden');
+        } else {
+            btn.innerText = 'EXECUTE_PUBLISH()';
+            btn.disabled = false;
+            alert(`Publish failed: ${res.error}`);
+        }
+    } catch (error) {
+        btn.innerText = 'EXECUTE_PUBLISH()';
+        btn.disabled = false;
+        alert(`UI Error: ${error.message}`);
+    }
+};
+
 async function loadView(view) {
     const title = document.getElementById('view-title');
     const dynamicView = document.getElementById('dynamic-view');
-    
+
     dynamicView.innerHTML = '<p style="color: var(--accent); font-family: monospace;" class="blink">> FETCHING DATA...</p>';
 
     try {
+        const filtersDiv = document.getElementById('movie-filters');
+
         if (view === 'movies') {
+            filtersDiv.classList.remove('hidden');
             title.innerText = 'MOVIES_DIRECTORY';
             const [movies, financials] = await Promise.all([
                 window.api.getAllMovies(),
                 window.api.getFinancialOverview()
             ]);
-            
-            const merged = movies.map(m => {
+
+            let merged = movies.map(m => {
                 const fin = financials.find(f => f.movie_id === m.id) || {};
                 return { ...m, ...fin };
             });
-            
-            dynamicView.innerHTML = buildCardGrid(merged, 'ALL_MOVIES', 'movies');
-        } 
+
+            if (window.currentMovieFilter === 'draft') {
+                merged = merged.filter(m => m.status === 'draft');
+            } else if (window.currentMovieFilter === 'published') {
+                merged = merged.filter(m => m.status === 'published');
+            }
+
+            dynamicView.innerHTML = buildCardGrid(merged, 'MOVIES DATABASE', 'movies');
+        }
         else if (view === 'actors') {
+            filtersDiv.classList.add('hidden');
             title.innerText = 'ACTORS_DIRECTORY';
             const data = await window.api.getAllActors();
             dynamicView.innerHTML = buildPersonCardGrid(data, 'ALL_ACTORS', 'actors', 'openActorDetail');

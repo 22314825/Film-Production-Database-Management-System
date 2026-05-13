@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import dotenv from 'dotenv';
 
-import { addMovie }                                          from '../src/controllers/movieController.js';
+import { addMovie, publishMovie }                            from '../src/controllers/movieController.js';
 import { addActor, addMovieActor }                          from '../src/controllers/actorController.js';
 import { addDirector, addMovieDirector }                    from '../src/controllers/directorController.js';
 import { addProducer, addMovieProducer }                    from '../src/controllers/producerController.js';
@@ -19,9 +19,9 @@ async function seedDatabase() {
     console.log('\nSeeding database with realistic entities...');
 
     // ── Movies ────────────────────────────────────────────────────────────────
-    const movie1 = await addMovie('Midnight Siege', 'Action',  'Cyber Heist',      2025);
-    const movie2 = await addMovie('Glass Horizon',  'Drama',   'Family Legacy',    2024);
-    const movie3 = await addMovie('Orbital Drift',  'Sci-Fi',  'Deep Space Rescue', 2026);
+    const movie1 = await addMovie('Midnight Siege');
+    const movie2 = await addMovie('Glass Horizon');
+    const movie3 = await addMovie('Orbital Drift');
 
     // ── Directors ─────────────────────────────────────────────────────────────
     const director1 = await addDirector('Elena Ward',   1978);
@@ -46,9 +46,9 @@ async function seedDatabase() {
     await addMovieDirector(movie3.id, director1.id);
 
     // ── Movie → Producer links ────────────────────────────────────────────────
-    await addMovieProducer(movie1.id, producer1.id);
-    await addMovieProducer(movie2.id, producer2.id);
-    await addMovieProducer(movie3.id, producer1.id);
+    await addMovieProducer(movie1.id, producer1.id, 75000000);
+    await addMovieProducer(movie2.id, producer2.id, 30000000);
+    await addMovieProducer(movie3.id, producer1.id, 90000000);
 
     // ── Movie → Actor links ───────────────────────────────────────────────────
     await addMovieActor(movie1.id, actor1.id, 'Lead',       900000);
@@ -67,9 +67,9 @@ async function seedDatabase() {
     await addMovieCrewMember(movie3.id, crew2.id, 'Production Designer', 190000);
 
     // ── Movie Finance ─────────────────────────────────────────────────────────
-    await addMovieFinance(movie1.id, 75000000, 62000000, 12000000, 145000000);
-    await addMovieFinance(movie2.id, 30000000, 25000000,  5000000,  52000000);
-    await addMovieFinance(movie3.id, 90000000, 73000000, 15000000, 168000000);
+    await addMovieFinance(movie1.id, 62000000, 12000000, 145000000);
+    await addMovieFinance(movie2.id, 25000000,  5000000,  52000000);
+    await addMovieFinance(movie3.id, 73000000, 15000000, 168000000);
 
     // ── Director Finance ──────────────────────────────────────────────────────
     await addDirectorFinance(director1.id, movie1.id, 1800000, 3.5, 'net',     'hybrid', 350000, 2600000);
@@ -80,6 +80,13 @@ async function seedDatabase() {
     await addProducerFinance(producer1.id, movie1.id, 1200000, 2.5, 'net',     'hybrid',     4.0, 71000000, 250000, 2600000);
     await addProducerFinance(producer2.id, movie2.id,  700000, 1.5, 'gross',   'flat',        2.5, 22000000, 100000, 1050000);
     await addProducerFinance(producer1.id, movie3.id, 1400000, 2.8, 'backend', 'percentage',  4.5, 80000000, 300000, 3300000);
+
+    // ── Publish Movies ────────────────────────────────────────────────────────
+    // ── Publish Movies ────────────────────────────────────────────────────────
+    console.log("Publishing Movies...");
+    await publishMovie(movie1.id, 'Midnight Siege', 'Action', 'Cyber Heist', 2025);
+    await publishMovie(movie2.id, 'Glass Horizon', 'Drama', 'Family Legacy', 2024);
+    await publishMovie(movie3.id, 'Orbital Drift', 'Sci-Fi', 'Deep Space Rescue', 2026);
 
     console.log('  ✓ Seeding complete');
     console.log('  Movies : Midnight Siege, Glass Horizon, Orbital Drift');

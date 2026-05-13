@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('api', {
     updateMovieFinance: (data) => ipcRenderer.invoke('update-movie-finance', data),
     assignMovieActor: (data) => ipcRenderer.invoke('assign-movie-actor', data),
     assignMovieCrew: (data) => ipcRenderer.invoke('assign-movie-crew', data),
+    publishMovie: (data) => ipcRenderer.invoke('publish-movie', data),
 
     // Mutations
     deleteEntity: (type, id) => ipcRenderer.invoke('delete-entity', type, id),

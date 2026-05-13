@@ -7,7 +7,7 @@ CREATE TABLE MovieFinance
 (
     id                 SERIAL PRIMARY KEY,
     movie_id           INT           NOT NULL UNIQUE REFERENCES Movie(id) ON DELETE CASCADE,
-    budget             DECIMAL(15, 2),
+    budget             DECIMAL(15, 2), -- maintained by trg_sync_movie_budget trigger
     production_cost    DECIMAL(15, 2),
     marketing_cost     DECIMAL(15, 2),
     box_office_revenue DECIMAL(15, 2),

@@ -2,7 +2,7 @@ import { uniqueName, assert, test } from './helpers.js';
 import { addMovieFinance, removeMovieFinance, getMovieFinance, addDirectorFinance, removeDirectorFinance, getDirectorFinance, addProducerFinance, removeProducerFinance, getProducerFinance } from '../controllers/financeController.js';
 import { addMovie, removeMovie } from '../controllers/movieController.js';
 import { addDirector, removeDirector } from '../controllers/directorController.js';
-import { addProducer, removeProducer } from '../controllers/producerController.js';
+import { addProducer, removeProducer, addMovieProducer } from '../controllers/producerController.js';
 
 export async function run() {
     console.log('\n── Finance Controller ──');
@@ -19,10 +19,22 @@ export async function run() {
 
     // ── MovieFinance ─────────────────────────────────────────────────────────
 
+    await test('addMovieFinance without producers throws exception', async () => {
+        let threw = false;
+        try {
+            const tempMovie = await addMovie(uniqueName('temp'), 'Drama');
+            await addMovieFinance(tempMovie.id, 4000000, 500000, 10000000);
+        } catch (e) {
+            threw = true;
+        }
+        assert(threw, 'exception was thrown');
+    });
+
     await test('addMovieFinance returns the inserted row', async () => {
-        const row = await addMovieFinance(movieId, 5000000, 4000000, 500000, 10000000);
+        await addMovieProducer(movieId, producerId, 5000000);
+        const row = await addMovieFinance(movieId, 4000000, 500000, 10000000);
         assert(row.movie_id === movieId, 'movie_id matches');
-        assert(Number(row.budget) === 5000000, 'budget matches');
+        assert(Number(row.budget) === 5000000, 'budget matches via trigger');
         // net_profit is auto-computed: 10M - 4M - 500k = 5.5M
         assert(Number(row.net_profit) === 5500000, 'net_profit is computed correctly');
     });

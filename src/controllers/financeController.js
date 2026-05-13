@@ -4,30 +4,28 @@ import sql from '../services/neonClient.js';
 
 export async function addMovieFinance(
     movieId,
-    budget = null,
     productionCost = null,
     marketingCost = null,
     boxOfficeRevenue = null
 ) {
     const rows = await sql`SELECT * FROM add_movie_finance(
-        ${movieId}, ${budget}, ${productionCost}, ${marketingCost}, ${boxOfficeRevenue}
+        ${movieId}, ${productionCost}, ${marketingCost}, ${boxOfficeRevenue}
     )`;
     return rows[0];
 }
 
 export async function upsertMovieFinance(
     movieId,
-    budget = null,
     productionCost = null,
     marketingCost = null,
     boxOfficeRevenue = null
 ) {
     const rows = await sql`
+        WITH p AS (SELECT COALESCE(SUM(investment), 0) as budget FROM Movie_Producer WHERE movie_id = ${movieId})
         INSERT INTO MovieFinance (movie_id, budget, production_cost, marketing_cost, box_office_revenue)
-        VALUES (${movieId}, ${budget}, ${productionCost}, ${marketingCost}, ${boxOfficeRevenue})
+        SELECT ${movieId}, p.budget, ${productionCost}, ${marketingCost}, ${boxOfficeRevenue} FROM p
         ON CONFLICT (movie_id) 
         DO UPDATE SET 
-            budget = EXCLUDED.budget,
             production_cost = EXCLUDED.production_cost,
             marketing_cost = EXCLUDED.marketing_cost,
             box_office_revenue = EXCLUDED.box_office_revenue

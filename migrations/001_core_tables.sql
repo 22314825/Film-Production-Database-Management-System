@@ -3,7 +3,8 @@ CREATE TABLE Movie (
     title VARCHAR(255) NOT NULL,
     genre VARCHAR(100),
     topic VARCHAR(100),
-    release_year INT
+    release_year INT,
+    status VARCHAR(20) DEFAULT 'draft'
 );
 
 CREATE TABLE Producer

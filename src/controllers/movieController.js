@@ -9,6 +9,11 @@ export async function removeMovie(id) {
     await sql`SELECT remove_movie(${id})`;
 }
 
+export async function publishMovie(id, title, genre, topic, releaseYear) {
+    const rows = await sql`SELECT * FROM publish_movie(${id}, ${title}, ${genre}, ${topic}, ${releaseYear})`;
+    return rows[0];
+}
+
 export async function getAllMovies() {
     return sql`SELECT * FROM Movie ORDER BY id`;
 }

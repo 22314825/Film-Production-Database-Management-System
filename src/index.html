@@ -26,7 +26,14 @@
         <!-- Main Content -->
         <main class="content-area">
             <header class="content-header">
-                <h1 id="view-title">Initializing...</h1>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px;">
+                    <h1 id="view-title" style="margin-bottom: 0; border: none; padding: 0;">Initializing...</h1>
+                    <div id="movie-filters" class="filters hidden">
+                        <button class="filter-btn active" data-filter="all">[ ALL ]</button>
+                        <button class="filter-btn" data-filter="draft">[ DRAFTS ]</button>
+                        <button class="filter-btn" data-filter="published">[ PUBLISHED ]</button>
+                    </div>
+                </div>
             </header>
 
             <div class="table-container" style="display: none;">
