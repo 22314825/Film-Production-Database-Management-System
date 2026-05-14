@@ -3,16 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CineDB | Cyberpunk Edition</title>
+    <title>Film Production Database Management System</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
+    <!-- ===== LOGIN SCREEN ===== -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-logo">
+                <h1 style="font-size:1.6rem;">FPDMS<span class="blink">_</span></h1>
+                <p class="login-subtitle">> Film-Production-Database-Management-System</p>
+            </div>
+
+            <div class="login-box">
+                <h3 class="login-title">> SYS.ACCESS_CONTROL</h3>
+
+                <div class="form-group">
+                    <label for="login-username">USERNAME</label>
+                    <input type="text" id="login-username" placeholder="Enter username...">
+                </div>
+
+                <div class="form-group">
+                    <label for="login-password">PASSWORD</label>
+                    <input type="password" id="login-password" placeholder="Enter password...">
+                </div>
+
+                <button class="btn btn-glow login-btn" id="login-admin-btn" style="width:100%; margin-bottom:12px;">
+                    LOGIN
+                </button>
+
+                <div class="login-divider">
+                    <span>OR</span>
+                </div>
+
+                <button class="btn login-spectator-btn" id="login-spectator-btn" style="width:100%;">
+                    CONTINUE AS SPECTATOR (VIEW ONLY)
+                </button>
+            </div>
+
+            <p class="login-footer">> Admin credentials required for full access</p>
+        </div>
+    </div>
+
+    <!-- ===== MAIN APP (hidden until login) ===== -->
+    <div class="app-container" id="app-container" style="display:none;">
         <!-- Sidebar -->
         <nav class="sidebar">
             <div class="sidebar-header">
-                <h2>CINE_DB<span class="blink">_</span></h2>
+                <h2 style="font-size:0.95rem;">FPDMS<span class="blink">_</span></h2>
+                <div id="user-role-badge" class="role-badge spectator">SPECTATOR</div>
             </div>
             <ul class="nav-links">
                 <li class="active" data-view="movies">> Movies</li>
@@ -21,6 +61,9 @@
                 <li data-view="producers">> Producers</li>
                 <li data-view="crew">> Crew</li>
             </ul>
+            <div class="sidebar-footer">
+                <button class="btn logout-btn" id="logout-btn">> LOGOUT</button>
+            </div>
         </nav>
 
         <!-- Main Content -->
