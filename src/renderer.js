@@ -1,4 +1,46 @@
 let currentView = 'movies';
+let isAdmin = false;
+
+// ---- Admin Credentials (change these) ----
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin123';
+
+// Auto-hide admin-only buttons for spectators
+function hideAdminButtons() {
+    if (isAdmin) return;
+    document.querySelectorAll('.card-actions').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.add-btn-container').forEach(el => el.style.display = 'none');
+    const db = document.getElementById('detail-body');
+    if (db) {
+        db.querySelectorAll('button[title]').forEach(el => el.style.display = 'none');
+        db.querySelectorAll('.btn-glow, .btn').forEach(el => {
+            const t = (el.textContent || '').toUpperCase();
+            if (t.includes('ASSIGN') || t.includes('EDIT') || t.includes('PUBLISH') || t.includes('ADD')) {
+                el.style.display = 'none';
+            }
+        });
+    }
+}
+
+function enterApp(admin) {
+    isAdmin = admin;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-container').style.display = 'flex';
+    const badge = document.getElementById('user-role-badge');
+    badge.textContent = admin ? 'ADMIN' : 'SPECTATOR';
+    badge.className = 'role-badge ' + (admin ? 'admin' : 'spectator');
+    window.currentMovieFilter = 'all';
+    loadView('movies');
+    if (!admin) new MutationObserver(hideAdminButtons).observe(document.body, { childList: true, subtree: true });
+}
+
+function logout() {
+    isAdmin = false;
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Nav Click Handling
@@ -28,9 +70,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // Load initial view
-    window.currentMovieFilter = 'all';
-    loadView('movies');
+    // Login button
+    document.getElementById('login-admin-btn').addEventListener('click', () => {
+        const u = document.getElementById('login-username').value.trim();
+        const p = document.getElementById('login-password').value.trim();
+        if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+            enterApp(true);
+        } else {
+            alert('Wrong credentials! Try again or continue as spectator.');
+        }
+    });
+
+    // Enter key on password field
+    document.getElementById('login-password').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('login-admin-btn').click();
+    });
+
+    // Spectator button
+    document.getElementById('login-spectator-btn').addEventListener('click', () => enterApp(false));
+
+    // Logout button
+    document.getElementById('logout-btn').addEventListener('click', logout);
 });
 
 // Entity schemas for Add Modal
