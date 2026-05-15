@@ -257,7 +257,7 @@ function buildGenericTable(data, title, entityType = null) {
         } else if (k.toLowerCase() === 'id' || k.toLowerCase().includes('_id')) {
             val = `<span style="color:var(--accent);">#${val}</span>`;
         } else if (k.toLowerCase() === 'name' || k.toLowerCase() === 'title') {
-            val = `<strong style="color:#fff;">${val}</strong>`;
+            val = `<strong style="color:var(--text-primary);">${val}</strong>`;
         }
         return `<td>${val}</td>`;
     }).join('')}
@@ -293,9 +293,9 @@ function buildCardGrid(data, title, entityType) {
             <div class="card-badge ${badgeClass}">${badgeText}</div>
             <div class="card-title">${item.title}</div>
             <div class="card-body">
-                ${item.status === 'published' ? `<p><strong>Release Year:</strong> <span style="color:#fff;">${item.release_year}</span></p>` : ''}
-                <p style="margin-top:8px;"><strong>Genre:</strong> <span style="color:#fff;">${item.genre || 'N/A'}</span></p>
-                <p style="margin-top:8px;"><strong>Topic:</strong> <span style="color:#fff;">${item.topic || 'N/A'}</span></p>
+                ${item.status === 'published' ? `<p><strong>Release Year:</strong> <span style="color:var(--text-primary);">${item.release_year}</span></p>` : ''}
+                <p style="margin-top:8px;"><strong>Genre:</strong> <span style="color:var(--text-primary);">${item.genre || 'N/A'}</span></p>
+                <p style="margin-top:8px;"><strong>Topic:</strong> <span style="color:var(--text-primary);">${item.topic || 'N/A'}</span></p>
                 ${statsHtml}
             </div>
             <div class="card-actions">
@@ -326,7 +326,7 @@ function buildPersonCardGrid(data, title, entityType, detailFn) {
     data.forEach(item => {
         const escapedName = item.name.replace(/'/g, "\\'");
         const genderRow = item.gender
-            ? `<p style="margin-top:8px;"><strong>Gender:</strong> <span style="color:#fff;">${item.gender}</span></p>`
+            ? `<p style="margin-top:8px;"><strong>Gender:</strong> <span style="color:var(--text-primary);">${item.gender}</span></p>`
             : '';
         html += `
         <div class="card" onclick="${detailFn}(${item.id}, '${escapedName}')">
@@ -405,7 +405,7 @@ window.openMovieDetail = async function (id, title, status) {
                 }
 
                 html += `<li style="padding:6px 0; border-bottom:1px solid var(--border-color); display:flex; align-items:center;">
-                    <span style="flex:1;">— <strong style="color:#fff;">${r.person_name}</strong> <span style="font-size:0.8rem; color:#64748b;">(${roleText})</span>${salaryBadge}</span>
+                    <span style="flex:1;">— <strong style="color:var(--text-primary);">${r.person_name}</strong> <span style="font-size:0.8rem; color:#64748b;">(${roleText})</span>${salaryBadge}</span>
                     ${actionBtns}
                 </li>`;
             });
@@ -421,7 +421,7 @@ window.openMovieDetail = async function (id, title, status) {
 
         if (movieFinance) {
             html += `
-                <p><strong>Budget (Investments):</strong> <span style="color:#fff;">${fmt.format(movieFinance.budget || 0)}</span></p>
+                <p><strong>Budget (Investments):</strong> <span style="color:var(--text-primary);">${fmt.format(movieFinance.budget || 0)}</span></p>
                 <p><strong>Production Cost:</strong> <span style="color:var(--danger);">${fmt.format(movieFinance.production_cost || 0)}</span></p>
                 <p><strong>Marketing Cost:</strong> <span style="color:var(--danger);">${fmt.format(movieFinance.marketing_cost || 0)}</span></p>
             `;
@@ -444,7 +444,7 @@ window.openMovieDetail = async function (id, title, status) {
         html += `</div>`;
 
         if (status === 'draft') {
-            html += `<button class="btn btn-glow" style="margin-top:20px; width:100%; border-color: #ffaa00; color: #ffaa00;" onclick="showPublishMovieForm(${id}, '${safeTitle}')">PUBLISH PROJECT</button>`;
+            html += `<button class="btn btn-glow" style="margin-top:20px; width:100%; border-color: #FFD700; color: #FFD700;" onclick="showPublishMovieForm(${id}, '${safeTitle}')">PUBLISH PROJECT</button>`;
         }
         html += `<button class="btn btn-glow" style="margin-top:10px; width:100%;" onclick="showEditFinanceForm(${id}, '${safeTitle}', '${status}')">EDIT FINANCES</button>`;
 
@@ -478,7 +478,7 @@ window.openActorDetail = async function (id, name) {
                 const roleText = m.role ? ` <em style="color:#94a3b8;">as ${m.role}</em>` : '';
                 const salaryText = m.salary ? `<span style="float:right; color:var(--accent); font-size:0.8rem;">${fmt.format(m.salary)}</span>` : '';
                 html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
-                    <strong style="color:#fff;">${m.title}</strong>
+                    <strong style="color:var(--text-primary);">${m.title}</strong>
                     <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
                     ${roleText}${salaryText}
                 </li>`;
@@ -518,7 +518,7 @@ window.openDirectorDetail = async function (id, name) {
         if (movies && movies.length > 0) {
             movies.forEach(m => {
                 html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
-                    <strong style="color:#fff;">${m.title}</strong>
+                    <strong style="color:var(--text-primary);">${m.title}</strong>
                     <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
                     ${m.genre ? `<span style="margin-left:8px; color:#64748b; font-size:0.8rem;">[${m.genre}]</span>` : ''}
                 </li>`;
@@ -533,7 +533,7 @@ window.openDirectorDetail = async function (id, name) {
             const roiColor = (roi.roi_pct >= 0) ? 'var(--accent)' : 'var(--danger)';
             html += `<h4 style="color:var(--accent); margin-bottom: 10px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> ROI ANALYSIS</h4>
                 <div style="color:var(--text-secondary); font-family:monospace; font-size:0.85rem; line-height:2;">
-                    ${roi.total_budget != null ? `<p><strong>Total Budget:</strong> <span style="color:#fff;">${fmt.format(roi.total_budget)}</span></p>` : ''}
+                    ${roi.total_budget != null ? `<p><strong>Total Budget:</strong> <span style="color:var(--text-primary);">${fmt.format(roi.total_budget)}</span></p>` : ''}
                     ${roi.total_spend != null ? `<p><strong>Total Spend:</strong> <span style="color:var(--danger);">${fmt.format(roi.total_spend)}</span></p>` : ''}
                     ${roi.total_revenue != null ? `<p><strong>Total Revenue:</strong> <span style="color:var(--accent);">${fmt.format(roi.total_revenue)}</span></p>` : ''}
                     ${roi.roi_pct != null ? `<p><strong>ROI:</strong> <span style="color:${roiColor}; font-size:1rem; font-weight:bold;">${roi.roi_pct}%</span></p>` : ''}
@@ -565,7 +565,7 @@ window.openProducerDetail = async function (id, name) {
         if (movies && movies.length > 0) {
             movies.forEach(m => {
                 html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
-                    <strong style="color:#fff;">${m.title}</strong>
+                    <strong style="color:var(--text-primary);">${m.title}</strong>
                     <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
                     ${m.genre ? `<span style="margin-left:8px; color:#64748b; font-size:0.8rem;">[${m.genre}]</span>` : ''}
                 </li>`;
@@ -603,7 +603,7 @@ window.openCrewDetail = async function (id, name) {
                 const roleText = m.job_title ? ` <em style="color:#94a3b8;">as ${m.job_title}</em>` : '';
                 const salaryText = m.salary ? `<span style="float:right; color:var(--accent); font-size:0.8rem;">${fmt.format(m.salary)}</span>` : '';
                 html += `<li style="padding:8px 0; border-bottom: 1px solid var(--border-color);">
-                    <strong style="color:#fff;">${m.title}</strong>
+                    <strong style="color:var(--text-primary);">${m.title}</strong>
                     <span style="color:var(--accent); margin-left:6px;">(${m.release_year || 'N/A'})</span>
                     ${roleText}${salaryText}
                 </li>`;
@@ -826,7 +826,7 @@ window.showPublishMovieForm = async function (movieId, movieTitle) {
 
         const html = `
             <div style="margin-bottom:20px;">
-                <h4 style="color:#ffaa00; margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> PUBLISH: ${movieTitle}</h4>
+                <h4 style="color:#FFD700; margin-bottom: 15px; border-bottom: 1px dashed var(--border-color); padding-bottom:5px; font-family:monospace;">> PUBLISH: ${movieTitle}</h4>
                 <p style="color:var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px;">
                     Warning: A project cannot be published without an assigned Producer (Finance Record).
                 </p>
@@ -855,7 +855,7 @@ window.showPublishMovieForm = async function (movieId, movieTitle) {
                 
                 <div style="display:flex; justify-content:space-between; margin-top:20px;">
                     <button class="btn btn-delete" onclick="openMovieDetail(${movieId}, '${movieTitle.replace(/'/g, "\\'")}', 'draft')">CANCEL</button>
-                    <button class="btn btn-glow" style="border-color: #ffaa00; color: #ffaa00;" id="pub-submit-btn" onclick="submitPublishMovie(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">EXECUTE_PUBLISH()</button>
+                    <button class="btn btn-glow" style="border-color: #FFD700; color: #FFD700;" id="pub-submit-btn" onclick="submitPublishMovie(${movieId}, '${movieTitle.replace(/'/g, "\\'")}')">EXECUTE_PUBLISH()</button>
                 </div>
             </div>
         `;
