@@ -56,5 +56,8 @@ contextBridge.exposeInMainWorld('api', {
 
     // Mutations
     deleteEntity: (type, id) => ipcRenderer.invoke('delete-entity', type, id),
-    addEntity: (type, data) => ipcRenderer.invoke('add-entity', type, data)
+    addEntity: (type, data) => ipcRenderer.invoke('add-entity', type, data),
+
+    // Auth
+    getAdminCredentials: () => ipcRenderer.invoke('get-admin-credentials')
 });

@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+dotenv.config();
 
 import { addMovie, removeMovie, getAllMovies, getMovieFullRoster, getMovieTotalSpend, publishMovie } from './controllers/movieController.js';
 import { addActor, removeActor, getAllActors, getMoviesByActorId, addMovieActor, removeMovieActor, updateActor, updateMovieActor, getActorById } from './controllers/actorController.js';
@@ -246,6 +248,12 @@ app.whenReady().then(() => {
             return { success: false, error: err.message };
         }
     });
+
+    // Admin credentials
+    ipcMain.handle('get-admin-credentials', () => ({
+        username: process.env.ADMIN_USERNAME,
+        password: process.env.ADMIN_PASSWORD
+    }));
 
     // Mutations (Add / Delete)
     ipcMain.handle('delete-entity', async (_, type, id) => {

@@ -1,9 +1,9 @@
 let currentView = 'movies';
 let isAdmin = false;
 
-// ---- Admin Credentials (change these) ----
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin123';
+// Admin credentials loaded from .env via main process
+let ADMIN_USERNAME = '';
+let ADMIN_PASSWORD = '';
 
 // Auto-hide admin-only buttons for spectators
 function hideAdminButtons() {
@@ -43,6 +43,11 @@ function logout() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Load admin credentials from environment
+    const creds = await window.api.getAdminCredentials();
+    ADMIN_USERNAME = creds.username || '';
+    ADMIN_PASSWORD = creds.password || '';
+
     // Nav Click Handling
     document.querySelectorAll('.nav-links li:not(.separator)').forEach(item => {
         item.addEventListener('click', (e) => {
