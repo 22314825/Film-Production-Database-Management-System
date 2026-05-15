@@ -22,13 +22,13 @@ function createWindow() {
         titleBarStyle: 'hiddenInset',
         backgroundColor: '#0a0a0a',
         webPreferences: {
-            preload: path.join(__dirname, 'preload.cjs'),
+            preload: path.join(__dirname, 'UI', 'preload.cjs'),
             nodeIntegration: false,
             contextIsolation: true
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'UI', 'index.html'));
 }
 
 app.whenReady().then(() => {
