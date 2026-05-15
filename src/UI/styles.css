@@ -380,11 +380,13 @@ tbody tr:last-child td {
     justify-content: center;
     z-index: 1000;
     opacity: 1;
-    transition: opacity 0.3s;
+    visibility: visible;
+    transition: opacity 0.3s, visibility 0.3s;
 }
 
 .modal-overlay.hidden {
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
 }
 
@@ -486,6 +488,7 @@ tbody tr:last-child td {
     width: 200%; height: 200%;
     background: radial-gradient(ellipse at center, rgba(0,255,204,0.03) 0%, transparent 70%);
     animation: rotateGlow 20s linear infinite;
+    pointer-events: none;
 }
 
 @keyframes rotateGlow {
@@ -495,6 +498,7 @@ tbody tr:last-child td {
 
 .login-container {
     text-align: center;
+    position: relative;
     z-index: 1;
     width: 400px;
 }

@@ -79,11 +79,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('login-admin-btn').addEventListener('click', () => {
         const u = document.getElementById('login-username').value.trim();
         const p = document.getElementById('login-password').value.trim();
+        const errorEl = document.getElementById('login-error');
         if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+            errorEl.textContent = '';
             enterApp(true);
         } else {
-            alert('Wrong credentials! Try again or continue as spectator.');
+            errorEl.textContent = '> ERR: INVALID CREDENTIALS. TRY AGAIN.';
         }
+    });
+
+    // Clear error on input change
+    document.getElementById('login-username').addEventListener('input', () => {
+        document.getElementById('login-error').textContent = '';
+    });
+    document.getElementById('login-password').addEventListener('input', () => {
+        document.getElementById('login-error').textContent = '';
     });
 
     // Enter key on password field
@@ -92,7 +102,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Spectator button
-    document.getElementById('login-spectator-btn').addEventListener('click', () => enterApp(false));
+    document.getElementById('login-spectator-btn').addEventListener('click', () => {
+        document.getElementById('login-error').textContent = '';
+        enterApp(false);
+    });
 
     // Logout button
     document.getElementById('logout-btn').addEventListener('click', logout);
